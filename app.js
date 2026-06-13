@@ -1,8 +1,11 @@
-﻿/**
+/**
  * EcoPulse 2.0 - Application Logic & State Controller
  * Features: Three.js shader morphing globe, Ecological footprint math,
  * and context-aware Gemini AI integrations.
  */
+
+// Hardcoded Gemini API Key (set this to your free Gemini key to enable live AI coaching out of the box)
+const GEMINI_API_KEY = '';
 
 // ================= GLOBAL DATA & CALCULATIONS =================
 
@@ -39,7 +42,7 @@ const CHECKLIST_ACTIONS = [
   {
     id: 'smart-ac',
     title: 'Optimized AC & cooling',
-    desc: 'Kept AC temperature at 26Â°C or switched to fans in empty rooms.',
+    desc: 'Kept AC temperature at 26\u00B0C or switched to fans in empty rooms.',
     impact: -1.8
   },
   {
@@ -133,7 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSavedState();
   initTabRouting();
   setupOnboardingEvents();
-  setupSettingsModal();
   setupChecklist();
   setupChatbot();
   
@@ -142,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Perform first calculations
   runQuizCalculator();
+  syncDashboardWithState();
   
   // Enforce initial view based on quiz status
   if (!state.quizDone) {
@@ -163,9 +166,8 @@ function loadSavedState() {
     }
   }
   
-  // Retrieve saved API Key
-  state.geminiKey = localStorage.getItem('ecopulse2_gemini_key') || '';
-  updateApiKeyIndicator();
+  // Set the hardcoded API Key
+  state.geminiKey = GEMINI_API_KEY;
 }
 
 // Save active state to local storage
@@ -242,51 +244,7 @@ function switchView(tabId) {
   }
 }
 
-// ================= SETTINGS CONFIG MODAL =================
-
-function setupSettingsModal() {
-  const trigger = document.getElementById('btn-settings-trigger');
-  const backdrop = document.getElementById('settings-modal-backdrop');
-  const closeBtn = document.getElementById('btn-close-settings');
-  const saveBtn = document.getElementById('btn-save-key');
-  const keyInput = document.getElementById('input-gemini-key');
-
-  trigger.addEventListener('click', () => {
-    keyInput.value = state.geminiKey;
-    backdrop.classList.remove('opacity-0', 'pointer-events-none');
-    backdrop.querySelector('div').classList.remove('scale-95');
-  });
-
-  const closeModal = () => {
-    backdrop.classList.add('opacity-0', 'pointer-events-none');
-    backdrop.querySelector('div').classList.add('scale-95');
-  };
-
-  closeBtn.addEventListener('click', closeModal);
-  backdrop.addEventListener('click', (e) => {
-    if (e.target === backdrop) closeModal();
-  });
-
-  saveBtn.addEventListener('click', () => {
-    const key = keyInput.value.trim();
-    state.geminiKey = key;
-    localStorage.setItem('ecopulse2_gemini_key', key);
-    updateApiKeyIndicator();
-    closeModal();
-    
-    // Add feedback in the coach chat
-    appendMessage('Spark', `API Key configured successfully. Direct connection to Gemini AI is now ${key ? 'active' : 'inactive (running simulated offline engine)'}.`);
-  });
-}
-
-function updateApiKeyIndicator() {
-  const indicator = document.getElementById('gemini-key-indicator');
-  if (state.geminiKey) {
-    indicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
-  } else {
-    indicator.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]";
-  }
-}
+// ================= SETTINGS CONFIG MODAL REMOVED =================
 
 // ================= FOOTPRINT CALCULATOR LOGIC (ONBOARDING) =================
 
@@ -295,44 +253,73 @@ function setupOnboardingEvents() {
   const commuteDistSlider = document.getElementById('slide-commute-dist');
   const commuteDistTxt = document.getElementById('txt-slide-commute-dist');
   
+  // Electricity Slider
+  const energyBillSlider = document.getElementById('slide-energy-bill');
+  const energyBillTxt = document.getElementById('txt-slide-energy-bill');
+  
+  // AC hours Slider
+  const energyAcSlider = document.getElementById('slide-energy-ac');
+  const energyAcTxt = document.getElementById('txt-slide-energy-ac');
+  
+  // LPG Cylinders Slider
+  const energyGasSlider = document.getElementById('slide-energy-gas');
+  const energyGasTxt = document.getElementById('txt-slide-energy-gas');
+
+  // Solar Toggle
+  const solarBtn = document.getElementById('btn-toggle-solar');
+
+  // Sync initial input positions from loaded state
+  if (state.quizAnswers) {
+    if (state.quizAnswers.commuteDist !== undefined) {
+      commuteDistSlider.value = state.quizAnswers.commuteDist;
+      commuteDistTxt.innerText = `${state.quizAnswers.commuteDist} km`;
+    }
+    if (state.quizAnswers.energyBill !== undefined) {
+      energyBillSlider.value = state.quizAnswers.energyBill;
+      energyBillTxt.innerText = `\u20B9${state.quizAnswers.energyBill}/mo`;
+    }
+    if (state.quizAnswers.energyAc !== undefined) {
+      energyAcSlider.value = state.quizAnswers.energyAc;
+      energyAcTxt.innerText = `${state.quizAnswers.energyAc} hrs/day`;
+    }
+    if (state.quizAnswers.energyGas !== undefined) {
+      energyGasSlider.value = state.quizAnswers.energyGas;
+      energyGasTxt.innerText = `${state.quizAnswers.energyGas} cyl/mo`;
+    }
+    if (state.quizAnswers.solar !== undefined) {
+      solarBtn.innerText = state.quizAnswers.solar ? 'On' : 'Off';
+      if (state.quizAnswers.solar) {
+        solarBtn.className = "px-4 py-2 rounded-xl text-xs font-bold font-heading border border-teal-500/30 bg-teal-500/20 text-teal-300 transition-all select-none shadow-[0_0_10px_rgba(20,184,166,0.2)]";
+      } else {
+        solarBtn.className = "px-4 py-2 rounded-xl text-xs font-bold font-heading border border-white/10 text-slate-400 hover:text-slate-200 transition-all select-none";
+      }
+    }
+  }
+
   commuteDistSlider.addEventListener('input', (e) => {
     state.quizAnswers.commuteDist = parseInt(e.target.value);
     commuteDistTxt.innerText = `${state.quizAnswers.commuteDist} km`;
     runQuizCalculator();
   });
 
-  // Electricity Slider
-  const energyBillSlider = document.getElementById('slide-energy-bill');
-  const energyBillTxt = document.getElementById('txt-slide-energy-bill');
-  
   energyBillSlider.addEventListener('input', (e) => {
     state.quizAnswers.energyBill = parseInt(e.target.value);
-    energyBillTxt.innerText = `â‚¹${state.quizAnswers.energyBill}/mo`;
+    energyBillTxt.innerText = `\u20B9${state.quizAnswers.energyBill}/mo`;
     runQuizCalculator();
   });
 
-  // AC hours Slider
-  const energyAcSlider = document.getElementById('slide-energy-ac');
-  const energyAcTxt = document.getElementById('txt-slide-energy-ac');
-  
   energyAcSlider.addEventListener('input', (e) => {
     state.quizAnswers.energyAc = parseInt(e.target.value);
     energyAcTxt.innerText = `${state.quizAnswers.energyAc} hrs/day`;
     runQuizCalculator();
   });
 
-  // LPG Cylinders Slider
-  const energyGasSlider = document.getElementById('slide-energy-gas');
-  const energyGasTxt = document.getElementById('txt-slide-energy-gas');
-  
   energyGasSlider.addEventListener('input', (e) => {
     state.quizAnswers.energyGas = parseFloat(e.target.value);
     energyGasTxt.innerText = `${state.quizAnswers.energyGas} cyl/mo`;
     runQuizCalculator();
   });
 
-  // Solar Toggle
-  const solarBtn = document.getElementById('btn-toggle-solar');
   solarBtn.addEventListener('click', () => {
     state.quizAnswers.solar = !state.quizAnswers.solar;
     solarBtn.innerText = state.quizAnswers.solar ? 'On' : 'Off';
@@ -408,7 +395,7 @@ function runQuizCalculator() {
   const dietScore = EMISSIONS_FACTORS.diet[state.quizAnswers.diet] || 0;
 
   // 3. Home Utilities
-  // Electricity: Bill (â‚¹) * 0.0033 kg CO2/â‚¹ (approx 0.8kg per kWh, 8â‚¹ per kWh, 30 days)
+  // Electricity: Bill (₹) * 0.0033 kg CO2/₹ (approx 0.8kg per kWh, 8 rupees per kWh, 30 days)
   let electricityScore = state.quizAnswers.energyBill * 0.0033;
   // AC: Hours * 1.2 kg CO2e (1.5kW * 0.8 kg/kWh)
   const acScore = state.quizAnswers.energyAc * 1.2;
@@ -517,16 +504,16 @@ function syncDashboardWithState() {
   // Carbon metrics badge level
   const carbonBadge = document.getElementById('lbl-carbon-badge');
   if (state.dailyScore === 0) {
-    carbonBadge.innerText = 'Carbon Neutral ðŸŒŸ';
+    carbonBadge.innerText = 'Carbon Neutral \uD83C\uDF1F';
     carbonBadge.className = 'mt-4 text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 w-fit shadow-[0_0_10px_rgba(16,185,129,0.2)]';
   } else if (state.dailyScore < 7) {
-    carbonBadge.innerText = 'Eco-Warrior ðŸƒ';
+    carbonBadge.innerText = 'Eco-Warrior \uD83C\uDF43';
     carbonBadge.className = 'mt-4 text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 w-fit';
   } else if (state.dailyScore < 15) {
-    carbonBadge.innerText = 'Carbon Conscious âš¡';
+    carbonBadge.innerText = 'Carbon Conscious \u26A1';
     carbonBadge.className = 'mt-4 text-[11px] font-bold px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 w-fit';
   } else {
-    carbonBadge.innerText = 'Carbon Heavyweight âš ï¸';
+    carbonBadge.innerText = 'Carbon Heavyweight \u26A0\uFE0F';
     carbonBadge.className = 'mt-4 text-[11px] font-bold px-3 py-1 rounded-full bg-rose-500/20 text-rose-500 border border-rose-500/30 w-fit shadow-[0_0_10px_rgba(244,63,94,0.15)]';
   }
 
@@ -557,7 +544,7 @@ function syncDashboardWithState() {
 // ================= THREE.JS GLOBE WORKSPACE =================
 
 /**
- * autoRotate â€” pauses when the user grabs the globe, resumes 1.5 s after release.
+ * autoRotate \u2014 pauses when the user grabs the globe, resumes 1.5 s after release.
  * Declared at module scope so animateGlobe() and setupGlobeDrag() can share it.
  */
 let autoRotate = true;
@@ -567,16 +554,16 @@ function initThreeGlobe() {
   const globeWrap    = document.getElementById('globe-container');
   if (!canvasTarget || !globeWrap) return;
 
-  // Measure the visible wrapper â€” canvasTarget may report 0 height before CSS layout
+  // Measure the visible wrapper \u2014 canvasTarget may report 0 height before CSS layout
   const width  = globeWrap.clientWidth  || 520;
   const height = globeWrap.clientHeight || 460;
 
-  // â”€â”€ Scene & Camera â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // \u2500\u2500 Scene & Camera \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
   camera.position.z = 2.65;
 
-  // â”€â”€ Renderer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // \u2500\u2500 Renderer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setSize(width, height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -584,11 +571,11 @@ function initThreeGlobe() {
   renderer.domElement.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:block;';
   canvasTarget.appendChild(renderer.domElement);
 
-  // â”€â”€ Earth Group â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // \u2500\u2500 Earth Group \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   earthGroup = new THREE.Group();
   scene.add(earthGroup);
 
-  // â”€â”€ Three-point Lighting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // \u2500\u2500 Three-point Lighting \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   scene.add(new THREE.AmbientLight(0x334d88, 0.60));        // cool-blue sky scatter
   const sunLight = new THREE.DirectionalLight(0xfff6e0, 1.30);
   sunLight.position.set(5, 3, 5);
@@ -597,7 +584,7 @@ function initThreeGlobe() {
   fillLight.position.set(-4, -2, -4);
   scene.add(fillLight);
 
-  // â”€â”€ Earth Surface Shaders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // \u2500\u2500 Earth Surface Shaders \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   const earthVS = `
     varying vec3 vNormal;
     varying vec2 vUv;
@@ -665,7 +652,7 @@ function initThreeGlobe() {
     }
   });
 
-  // â”€â”€ Real Earth Texture (CORS-enabled CDN) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // \u2500\u2500 Real Earth Texture (CORS-enabled CDN) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // Loads the three-globe package's equirectangular Blue-Marble day map.
   const TX_PRIMARY  = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-day.jpg';
   const TX_FALLBACK = 'https://unpkg.com/three-globe/example/img/earth-day.jpg';
@@ -685,11 +672,11 @@ function initThreeGlobe() {
   }
   loadEarthTexture(TX_PRIMARY, TX_FALLBACK);
 
-  // â”€â”€ Earth Sphere Mesh â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // \u2500\u2500 Earth Sphere Mesh \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   earthMesh = new THREE.Mesh(new THREE.SphereGeometry(1.0, 64, 64), earthMat);
   earthGroup.add(earthMesh);
 
-  // â”€â”€ Outer Atmosphere Glow Shell (BackSide + Additive blending) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // \u2500\u2500 Outer Atmosphere Glow Shell (BackSide + Additive blending) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   const atmMat = new THREE.ShaderMaterial({
     vertexShader: `
       varying vec3 vNormal;
@@ -703,7 +690,7 @@ function initThreeGlobe() {
       uniform float u_health;
       void main() {
         vec3 N = normalize(vNormal);
-        // BackSide normals point inward â€” negative dot product = silhouette rim
+        // BackSide normals point inward \u2014 negative dot product = silhouette rim
         float facing = max(0.0, -dot(N, vec3(0.0, 0.0, 1.0)));
         float rim    = pow(facing, 2.2);
         vec3  clean  = vec3(0.08, 0.84, 1.00);
@@ -720,7 +707,7 @@ function initThreeGlobe() {
   atmosphereMesh = new THREE.Mesh(new THREE.SphereGeometry(1.068, 32, 32), atmMat);
   scene.add(atmosphereMesh);
 
-  // â”€â”€ City Hotspot Markers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // \u2500\u2500 City Hotspot Markers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // radius 1.02 floats markers just above the surface to avoid z-fighting.
   CITY_HOTSPOTS.forEach((city, index) => {
     const pos = latLonToVector3(city.lat, city.lon, 1.02);
@@ -756,7 +743,7 @@ function initThreeGlobe() {
     }
   });
 
-  // â”€â”€ Drag + animation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // \u2500\u2500 Drag + animation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   setupGlobeDrag(globeWrap); // attach to the card wrapper for full hit-area coverage
   animateGlobe();
   window.addEventListener('resize', handleResize);
@@ -766,8 +753,8 @@ function initThreeGlobe() {
  * Convert geographic lat/lon (degrees) to a Three.js Cartesian position.
  *
  * Consistent with SphereGeometry UV mapping:
- *   U=0 â†’ lon -180Â°, U=1 â†’ lon +180Â°
- *   V=0 â†’ lat -90Â°,  V=1 â†’ lat +90Â°
+ *   U=0 \u2192 lon -180\u00b0, U=1 \u2192 lon +180\u00b0
+ *   V=0 \u2192 lat -90\u00b0,  V=1 \u2192 lat +90\u00b0
  *
  * This ensures city markers land on the correct continent once the
  * real equirectangular texture is applied.
@@ -971,7 +958,7 @@ function triggerSparkAdvice(scenario) {
   if (scenario === 'welcome') {
     appendMessage('Spark', "Greetings! I'm Spark, your environmental pocket coach. I analyze your footprint and metrics to help you make carbon-saving habits. Ask me for specific tips or tap a suggestion bubble below!");
   } else if (scenario === 'onboarding_finished') {
-    const greeting = `Onboarding complete! I've analyzed your initial lifestyle inputs. Your calculated daily carbon score starts at **${state.dailyBaseScore.toFixed(1)} kg COâ‚‚e**, demanding **${state.earthsNeeded.toFixed(1)} Earths**. Let's start ticking off green habits on the Dashboard checklist to lower these metrics!`;
+    const greeting = `Onboarding complete! I've analyzed your initial lifestyle inputs. Your calculated daily carbon score starts at **${state.dailyBaseScore.toFixed(1)} kg CO\u2082e**, demanding **${state.earthsNeeded.toFixed(1)} Earths**. Let's start ticking off green habits on the Dashboard checklist to lower these metrics!`;
     appendMessage('Spark', greeting);
   }
 }
@@ -1061,7 +1048,7 @@ The user's current environmental metrics are:
 - Daily Active Carbon Footprint: ${state.dailyScore.toFixed(1)} kg CO2e (Onboarding baseline: ${state.dailyBaseScore.toFixed(1)} kg)
 - Earth Score: ${state.earthsNeeded.toFixed(1)} Earths needed
 - Checklist habits completed today: [${activeHabits}]
-- Profile details: Travel distance of ${state.quizAnswers.commuteDist} km using ${state.quizAnswers.commuteMode}, diet is ${state.quizAnswers.diet}, home energy bill is â‚¹${state.quizAnswers.energyBill}/mo, AC usage is ${state.quizAnswers.energyAc} hrs/day, renewable solar option is ${state.quizAnswers.solar ? 'Active' : 'Inactive'}.
+- Profile details: Travel distance of ${state.quizAnswers.commuteDist} km using ${state.quizAnswers.commuteMode}, diet is ${state.quizAnswers.diet}, home energy bill is \u20B9${state.quizAnswers.energyBill}/mo, AC usage is ${state.quizAnswers.energyAc} hrs/day, renewable solar option is ${state.quizAnswers.solar ? 'Active' : 'Inactive'}.
 
 Provide a highly personalized, practical response in 2-3 sentences. Reference their specific metrics (Carbon score or Earths score) and suggest high-impact choices. Keep your answer encouraging and modern.`;
 
@@ -1124,21 +1111,21 @@ function getSimulatedOfflineResponse(prompt, context) {
     const energyC = (state.quizAnswers.energyBill * 0.0033) + (state.quizAnswers.energyAc * 1.2) + (state.quizAnswers.energyGas * 1.4);
 
     if (commuteC > dietC && commuteC > energyC) {
-      resp = `Your biggest daily carbon driver is **commute travel** generating **${commuteC.toFixed(1)} kg COâ‚‚e**. Shifting your mode from ${state.quizAnswers.commuteMode} to public transit or cycling will make the biggest dent in your footprint.`;
+      resp = `Your biggest daily carbon driver is **commute travel** generating **${commuteC.toFixed(1)} kg CO\u2082e**. Shifting your mode from ${state.quizAnswers.commuteMode} to public transit or cycling will make the biggest dent in your footprint.`;
     } else if (dietC > commuteC && dietC > energyC) {
-      resp = `Your **diet choices** represent your highest emissions driver at **${dietC.toFixed(1)} kg COâ‚‚e**. Transitioning to a vegetarian or plant-based diet will reduce this metric by up to 70% instantly.`;
+      resp = `Your **diet choices** represent your highest emissions driver at **${dietC.toFixed(1)} kg CO\u2082e**. Transitioning to a vegetarian or plant-based diet will reduce this metric by up to 70% instantly.`;
     } else {
-      resp = `Your **home energy utility load** is your biggest emission source at **${energyC.toFixed(1)} kg COâ‚‚e**. Swapping standard appliances for high-efficiency ones and managing AC cooling hours will yield massive reductions.`;
+      resp = `Your **home energy utility load** is your biggest emission source at **${energyC.toFixed(1)} kg CO\u2082e**. Swapping standard appliances for high-efficiency ones and managing AC cooling hours will yield massive reductions.`;
     }
   } else if (query.includes('delhi') || query.includes('grid') || query.includes('india')) {
-    resp = `New Delhi's grid intensity stands high at **680 g COâ‚‚/kWh** due to its heavy reliance on regional coal power plants. Shifting utility consumption to daytime solar slots helps drive down coal demands.`;
+    resp = `New Delhi's grid intensity stands high at **680 g CO\u2082/kWh** due to its heavy reliance on regional coal power plants. Shifting utility consumption to daytime solar slots helps drive down coal demands.`;
   } else if (query.includes('reykjavik') || query.includes('iceland')) {
-    resp = `Reykjavik showcases grid excellence at just **12 g COâ‚‚/kWh** by leveraging geothermal hot springs and hydro turbines. It serves as a benchmark model for urban grid cleanups globally.`;
+    resp = `Reykjavik showcases grid excellence at just **12 g CO\u2082/kWh** by leveraging geothermal hot springs and hydro turbines. It serves as a benchmark model for urban grid cleanups globally.`;
   } else if (query.includes('new york') || query.includes('sydney')) {
-    resp = `Both New York (280 g COâ‚‚/kWh) and Sydney (590 g COâ‚‚/kWh) are scaling solar grid capacities, although coal and natural gas base loads still present key carbon challenges.`;
+    resp = `Both New York (280 g CO\u2082/kWh) and Sydney (590 g CO\u2082/kWh) are scaling solar grid capacities, although coal and natural gas base loads still present key carbon challenges.`;
   } else {
     // General tailored greeting fallback
-    resp = `Under your current lifestyle, your daily score sits at **${state.dailyScore.toFixed(1)} kg COâ‚‚e**. Completing habits like eating vegetarian meals and drying clothes naturally reduces your footprint in real-time. Keep it up!`;
+    resp = `Under your current lifestyle, your daily score sits at **${state.dailyScore.toFixed(1)} kg CO\u2082e**. Completing habits like eating vegetarian meals and drying clothes naturally reduces your footprint in real-time. Keep it up!`;
   }
   
   return `[Simulated Spark Advice - Save Gemini API key in settings for live interactions]\n\n${resp}`;

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EcoPulse 2.0 - Active Carbon & Planetary Metrics</title>
   <meta name="description" content="Ecological footprint calculator, active daily habits tracker, 3D interactive globe, and context-aware Gemini AI coaching.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   
   <!-- CSS Link & Tailwind CSS v3 CDN -->
   <link rel="stylesheet" href="styles.css?v=2">
@@ -96,16 +97,6 @@
 
       <!-- Sidebar Footer Settings -->
       <div class="flex flex-col gap-4 border-t border-white/5 pt-4">
-        <button id="btn-settings-trigger" class="flex items-center justify-between w-full px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-slate-400 hover:text-slate-200 text-sm">
-          <div class="flex items-center gap-3">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-            <span class="font-heading font-medium">Gemini Configuration</span>
-          </div>
-          <span id="gemini-key-indicator" class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></span>
-        </button>
         <div class="text-[11px] text-slate-500 text-center">
           EcoPulse 2.0 • GenAI Hackathon
         </div>
@@ -510,13 +501,13 @@
                 <div class="flex flex-col gap-2 bg-white/5 border border-white/5 p-4 rounded-xl">
                   <div class="flex justify-between items-center">
                     <label for="slide-energy-bill" class="text-xs font-bold text-slate-300">Electricity Bill</label>
-                    <span id="txt-slide-energy-bill" class="text-xs font-heading font-bold text-blue-400">₹2000/mo</span>
+                    <span id="txt-slide-energy-bill" class="text-xs font-heading font-bold text-blue-400">&#8377;2000/mo</span>
                   </div>
                   <input type="range" id="slide-energy-bill" min="0" max="10000" step="500" value="2000" class="w-full">
                   <div class="flex justify-between text-[8px] text-slate-500 mt-1">
-                    <span>₹0</span>
-                    <span>₹5000</span>
-                    <span>₹10000+</span>
+                    <span>&#8377;0</span>
+                    <span>&#8377;5000</span>
+                    <span>&#8377;10000+</span>
                   </div>
                 </div>
 
@@ -622,48 +613,7 @@
 
   </div>
 
-  <!-- ================= SETTINGS CONFIG MODAL ================= -->
-  <div id="settings-modal-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 opacity-0 pointer-events-none transition-all duration-300">
-    <div class="w-full max-w-md glass-panel border-glow-teal rounded-2xl overflow-hidden shadow-2xl p-6 transform scale-95 transition-all duration-300">
-      
-      <!-- Modal Header -->
-      <div class="flex justify-between items-center mb-6">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20 flex items-center justify-center">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-          </div>
-          <h3 class="text-lg font-heading font-extrabold text-white">Gemini API Configuration</h3>
-        </div>
-        <button id="btn-close-settings" class="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
 
-      <!-- Modal Content -->
-      <div class="flex flex-col gap-4">
-        <div class="flex flex-col gap-1.5">
-          <label for="input-gemini-key" class="text-xs font-bold text-slate-300">Google AI Studio API Key</label>
-          <input type="password" id="input-gemini-key" class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-teal-500 text-slate-100 placeholder:text-slate-500" placeholder="AIzaSy...">
-          <p class="text-[10px] text-slate-400 leading-normal mt-1">
-            Your key is saved locally in your browser's localStorage. It is used directly to authenticate calls with Gemini 3.5 (1.5 Flash) to generate custom eco advice. If empty, the app runs using standard high-fidelity simulated advice responses.
-          </p>
-        </div>
-
-        <div class="flex justify-end gap-3 mt-4">
-          <button id="btn-save-key" class="px-5 py-2.5 rounded-xl bg-teal-500 text-white font-heading font-bold text-xs shadow-[0_0_15px_rgba(20,184,166,0.3)] hover:bg-teal-600 transition-all">
-            Save Configuration
-          </button>
-        </div>
-      </div>
-
-    </div>
-  </div>
 
   <!-- Core JavaScript File -->
   <script src="app.js?v=2"></script>
