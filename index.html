@@ -92,6 +92,15 @@
             </svg>
             Eco-Coach AI
           </button>
+
+          <button id="nav-compare" class="flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5">
+            <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            Global Comparison
+          </button>
         </nav>
       </div>
 
@@ -604,6 +613,86 @@
               </div>
             </div>
 
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ================= TAB 4: GLOBAL COMPARISONS ================= -->
+      <div id="tab-compare-view" class="tab-pane hidden flex flex-col gap-6 h-full">
+        <header class="flex justify-between items-center shrink-0">
+          <div>
+            <h1 class="text-3xl font-heading font-extrabold text-white tracking-tight">Global Footprint Comparisons</h1>
+            <p class="text-sm text-slate-400">See how your annualized active carbon footprint compares against per-capita national averages worldwide.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-heading font-bold text-slate-400 uppercase tracking-wider">Metrics: Annualized Metric Tons CO₂e</span>
+          </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow overflow-y-auto min-h-0 pr-2 pb-6 relative z-10">
+          
+          <!-- Left Panel: Chart & List -->
+          <div class="lg:col-span-7 flex flex-col gap-5 glass-panel border-glow-ice p-6 rounded-2xl">
+            <div>
+              <h3 class="text-lg font-heading font-extrabold text-white">Per-Capita Carbon Comparison</h3>
+              <p class="text-xs text-slate-400 mt-0.5">Select any country bar to read specific insights and comparisons with your current footprint.</p>
+            </div>
+
+            <!-- Dynamic Comparison Chart Bars Container -->
+            <div id="compare-bars-list" class="flex flex-col gap-4 mt-2">
+              <!-- Bars will be rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Right Panel: Spotlight Detail Analysis Card -->
+          <div class="lg:col-span-5 flex flex-col gap-6">
+            <!-- Your Annualized Score Summary Card -->
+            <div class="glass-panel border-glow-teal p-5 rounded-2xl relative overflow-hidden">
+              <span class="text-xs font-bold tracking-wider uppercase text-teal-400 font-heading">Your Performance</span>
+              <h3 class="text-lg font-heading font-extrabold text-white mt-1">Annual Emissions Projection</h3>
+              <div class="mt-4 flex items-baseline gap-2">
+                <h2 id="txt-compare-user-tons" class="text-4xl font-heading font-extrabold text-white">--</h2>
+                <span class="text-sm font-semibold text-slate-400 font-body">Metric Tons CO₂e/yr</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-2 leading-relaxed" id="txt-compare-analysis-summary">
+                Complete onboarding calculations to project your annualized carbon outputs.
+              </p>
+            </div>
+
+            <!-- Country Detail Card -->
+            <div id="country-compare-spotlight" class="glass-panel border-glow-violet p-5 rounded-2xl flex-grow flex flex-col justify-between">
+              <div>
+                <span class="text-xs font-bold tracking-wider uppercase text-violet-400 font-heading" id="lbl-compare-spotlight-sub">Country Spotlight</span>
+                <h3 class="text-xl font-heading font-extrabold text-white mt-1" id="txt-compare-spotlight-name">Select a Country</h3>
+                
+                <div class="my-4 flex items-center justify-between border-b border-white/5 pb-3">
+                  <span class="text-xs text-slate-400 font-semibold">National Average:</span>
+                  <div class="flex items-baseline gap-1">
+                    <span id="txt-compare-spotlight-val" class="font-heading font-bold text-lg text-violet-400">--</span>
+                    <span class="text-[10px] text-slate-400">t CO₂e/yr</span>
+                  </div>
+                </div>
+
+                <div class="my-4 flex items-center justify-between border-b border-white/5 pb-3">
+                  <span class="text-xs text-slate-400 font-semibold">Comparison Ratio:</span>
+                  <span id="txt-compare-spotlight-ratio" class="text-xs font-bold text-slate-200">--</span>
+                </div>
+
+                <p class="text-xs text-slate-400 leading-relaxed mt-2" id="txt-compare-spotlight-desc">
+                  Select a country from the comparison chart list to compare your footprint against their national average and learn about their sustainability focus.
+                </p>
+              </div>
+
+              <div class="mt-6 border-t border-white/5 pt-4">
+                <div class="flex items-center gap-3 bg-white/5 border border-white/5 p-3 rounded-xl">
+                  <div class="w-2.5 h-2.5 rounded-full bg-violet-400 shrink-0" id="compare-spotlight-bullet"></div>
+                  <div class="text-[11px] text-slate-400 leading-relaxed" id="txt-compare-spotlight-fact">
+                    Hover and click any bar on the left to start.
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
         </div>

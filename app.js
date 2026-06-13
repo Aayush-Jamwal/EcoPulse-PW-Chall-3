@@ -188,7 +188,8 @@ function initTabRouting() {
   const tabs = [
     { id: 'onboarding', btn: 'nav-onboarding', view: 'tab-onboarding-view' },
     { id: 'dashboard', btn: 'nav-dashboard', view: 'tab-dashboard-view' },
-    { id: 'coach', btn: 'nav-coach', view: 'tab-coach-view' }
+    { id: 'coach', btn: 'nav-coach', view: 'tab-coach-view' },
+    { id: 'compare', btn: 'nav-compare', view: 'tab-compare-view' }
   ];
 
   tabs.forEach(tab => {
@@ -220,7 +221,8 @@ function switchView(tabId) {
   const tabs = [
     { id: 'onboarding', btn: 'nav-onboarding', view: 'tab-onboarding-view' },
     { id: 'dashboard', btn: 'nav-dashboard', view: 'tab-dashboard-view' },
-    { id: 'coach', btn: 'nav-coach', view: 'tab-coach-view' }
+    { id: 'coach', btn: 'nav-coach', view: 'tab-coach-view' },
+    { id: 'compare', btn: 'nav-compare', view: 'tab-compare-view' }
   ];
 
   tabs.forEach(t => {
@@ -241,6 +243,11 @@ function switchView(tabId) {
   // Re-sync canvas sizes if entering dashboard
   if (tabId === 'dashboard') {
     handleResize();
+  }
+
+  // Re-sync comparisons if entering compare tab
+  if (tabId === 'compare') {
+    updateComparisonTab();
   }
 }
 
@@ -539,6 +546,9 @@ function syncDashboardWithState() {
   } else {
     calloutText.innerText = "Complete checklist items like 'Took green transit' or 'Unplugged vampire loads' to lower your metrics instantly!";
   }
+
+  // Update comparisons dynamically
+  updateComparisonTab();
 }
 
 // ================= THREE.JS GLOBE WORKSPACE =================
@@ -1129,4 +1139,172 @@ function getSimulatedOfflineResponse(prompt, context) {
   }
   
   return `[Simulated Spark Advice - Save Gemini API key in settings for live interactions]\n\n${resp}`;
+}
+
+// ================= GLOBAL CARBON COMPARISONS TAB DATA & LOGIC =================
+
+const COUNTRY_COMPARISONS = [
+  {
+    code: 'IN',
+    name: 'India',
+    emissions: 1.9,
+    fact: 'India has one of the lowest per-capita carbon intensities among G20 nations, largely due to low-meat diets, high public transit usage, and growing residential solar.',
+    color: 'from-emerald-500 to-teal-400',
+    colorHex: '#10b981'
+  },
+  {
+    code: 'WO',
+    name: 'World Average',
+    emissions: 4.7,
+    fact: 'The current global average per capita. To limit warming to 1.5°C, the IPCC estimates that global per-capita emissions must drop below 2.0 tons by 2030.',
+    color: 'from-cyan-500 to-blue-500',
+    colorHex: '#3b82f6'
+  },
+  {
+    code: 'DE',
+    name: 'Germany',
+    emissions: 7.7,
+    fact: 'Germany features aggressive renewable targets (Energiewende) but faces grid challenges due to nuclear phaseouts and natural gas dependency for winter heating.',
+    color: 'from-amber-500 to-yellow-500',
+    colorHex: '#f59e0b'
+  },
+  {
+    code: 'CN',
+    name: 'China',
+    emissions: 8.0,
+    fact: 'China leads the world in absolute wind and solar installs, but its per-capita footprint is high due to coal-intensive manufacturing and heavy industrial output.',
+    color: 'from-orange-500 to-red-500',
+    colorHex: '#f97316'
+  },
+  {
+    code: 'IS',
+    name: 'Iceland',
+    emissions: 9.2,
+    fact: 'Iceland relies almost 100% on hydro and geothermal for domestic electricity and heating, but high per-capita smelting and flight transport drive up absolute scores.',
+    color: 'from-indigo-500 to-violet-500',
+    colorHex: '#6366f1'
+  },
+  {
+    code: 'US',
+    name: 'United States',
+    emissions: 14.4,
+    fact: 'The US has high per-capita emissions driven by single-occupancy vehicle commutes, large suburban houses, high heating/cooling loads, and heavy consumer goods demand.',
+    color: 'from-rose-500 to-pink-500',
+    colorHex: '#f43f5e'
+  },
+  {
+    code: 'AU',
+    name: 'Australia',
+    emissions: 15.0,
+    fact: 'Australia is coal-dependent for utility base grids, has high per-capita transport miles, and features high consumption metrics despite massive residential solar growth.',
+    color: 'from-rose-600 to-red-600',
+    colorHex: '#dc2626'
+  }
+];
+
+let selectedCompareCountryCode = 'IN';
+
+function updateComparisonTab() {
+  const container = document.getElementById('compare-bars-list');
+  if (!container) return;
+
+  const userTons = (state.dailyScore * 365) / 1000;
+  document.getElementById('txt-compare-user-tons').innerText = userTons.toFixed(1);
+
+  // Analyze user vs standards
+  const summaryEl = document.getElementById('txt-compare-analysis-summary');
+  if (userTons <= 1.9) {
+    summaryEl.innerHTML = `Outstanding! Your annual emissions of <strong>${userTons.toFixed(1)} tons</strong> are below the average per-capita emissions of India (1.9 tons). You are living highly sustainably!`;
+  } else if (userTons <= 4.7) {
+    summaryEl.innerHTML = `Great work! Your annual emissions of <strong>${userTons.toFixed(1)} tons</strong> are below the global average limit of 4.7 tons. Keep checking daily habits to align closer with low-carbon benchmarks.`;
+  } else {
+    summaryEl.innerHTML = `Your annualized emissions sit at <strong>${userTons.toFixed(1)} tons</strong>, which exceeds the global per-capita average of 4.7 tons. Try adjusting AC cooling hours or commuting modes to lower this footprint.`;
+  }
+
+  // Combine user and country list for sorting
+  const items = [
+    ...COUNTRY_COMPARISONS,
+    {
+      code: 'USER',
+      name: 'Your Current Footprint',
+      emissions: userTons,
+      fact: 'Your carbon footprint calculated in real-time from onboarding utilities and daily habits checklist.',
+      color: 'from-teal-400 to-indigo-500',
+      colorHex: '#14b8a6',
+      isUser: true
+    }
+  ];
+
+  // Sort by emissions ascending
+  items.sort((a, b) => a.emissions - b.emissions);
+
+  // Find max emissions to scale bar widths
+  const maxEmissions = Math.max(...items.map(item => item.emissions));
+
+  container.innerHTML = '';
+
+  items.forEach(item => {
+    const pct = (item.emissions / maxEmissions) * 100;
+    const barWrap = document.createElement('button');
+    barWrap.type = 'button';
+    
+    if (item.isUser) {
+      barWrap.className = "w-full text-left p-3 rounded-xl border border-teal-500 bg-teal-500/10 shadow-[0_0_15px_rgba(20,184,166,0.15)] flex flex-col gap-1.5 transition-all duration-300 transform scale-[1.01] hover:scale-[1.02]";
+    } else {
+      const isSelected = item.code === selectedCompareCountryCode;
+      barWrap.className = `w-full text-left p-3 rounded-xl border transition-all duration-300 flex flex-col gap-1.5 ${isSelected ? 'border-violet-500 bg-violet-500/5' : 'border-white/5 hover:border-white/10 bg-white/5'}`;
+    }
+
+    barWrap.innerHTML = `
+      <div class="flex justify-between items-center text-xs">
+        <span class="font-heading font-extrabold ${item.isUser ? 'text-teal-400' : 'text-slate-200'}">${item.name} ${item.isUser ? '⭐' : ''}</span>
+        <span class="font-bold text-slate-400">${item.emissions.toFixed(1)} tons</span>
+      </div>
+      <div class="w-full bg-slate-950/40 rounded-full h-3.5 overflow-hidden border border-white/5">
+        <div class="bg-gradient-to-r ${item.color || 'from-violet-500 to-indigo-500'} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+      </div>
+    `;
+
+    barWrap.addEventListener('click', () => {
+      if (!item.isUser) {
+        selectedCompareCountryCode = item.code;
+      }
+      displayCompareSpotlight(item, userTons);
+      // Re-render list to reflect selected styling
+      updateComparisonTab();
+    });
+
+    container.appendChild(barWrap);
+  });
+
+  // Load selected country in spotlight
+  const spotlightItem = items.find(item => item.code === selectedCompareCountryCode) || COUNTRY_COMPARISONS[0];
+  displayCompareSpotlight(spotlightItem, userTons);
+}
+
+function displayCompareSpotlight(item, userTons) {
+  document.getElementById('txt-compare-spotlight-name').innerText = item.name;
+  document.getElementById('txt-compare-spotlight-val').innerText = item.emissions.toFixed(1);
+  document.getElementById('txt-compare-spotlight-desc').innerText = item.fact;
+
+  const bullet = document.getElementById('compare-spotlight-bullet');
+  bullet.style.backgroundColor = item.colorHex || '#c084fc';
+
+  if (item.isUser) {
+    document.getElementById('lbl-compare-spotlight-sub').innerText = 'Active Projection';
+    document.getElementById('txt-compare-spotlight-ratio').innerText = '100% (Base)';
+    document.getElementById('txt-compare-spotlight-fact').innerText = 'This is your calculated carbon footprint, reflecting baseline inputs and completed checklist items.';
+  } else {
+    document.getElementById('lbl-compare-spotlight-sub').innerText = 'Country Spotlight';
+    const ratio = userTons / item.emissions;
+    let ratioText = '';
+    if (ratio < 1.0) {
+      ratioText = `${(ratio * 100).toFixed(0)}% of their average (${(1/ratio).toFixed(1)}x smaller)`;
+      document.getElementById('txt-compare-spotlight-fact').innerText = `Awesome! Your footprint is smaller than the per-capita average of ${item.name} by ${(1/ratio).toFixed(1)}x.`;
+    } else {
+      ratioText = `${(ratio * 100).toFixed(0)}% of their average (${ratio.toFixed(1)}x larger)`;
+      document.getElementById('txt-compare-spotlight-fact').innerText = `Your footprint is currently ${ratio.toFixed(1)}x larger than the per-capita average of ${item.name}.`;
+    }
+    document.getElementById('txt-compare-spotlight-ratio').innerText = ratioText;
+  }
 }
