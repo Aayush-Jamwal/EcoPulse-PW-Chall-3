@@ -138,14 +138,14 @@ document.addEventListener('DOMContentLoaded', () => {
   setupOnboardingEvents();
   setupChecklist();
   setupChatbot();
-  
+
   // Start Three.js Globe rendering
   initThreeGlobe();
-  
+
   // Perform first calculations
   runQuizCalculator();
   syncDashboardWithState();
-  
+
   // Enforce initial view based on quiz status
   if (!state.quizDone) {
     switchView('onboarding');
@@ -165,7 +165,7 @@ function loadSavedState() {
       console.warn('Could not parse saved state, starting fresh:', e);
     }
   }
-  
+
   // Set the hardcoded API Key
   state.geminiKey = GEMINI_API_KEY;
 }
@@ -228,7 +228,7 @@ function switchView(tabId) {
   tabs.forEach(t => {
     const viewEl = document.getElementById(t.view);
     const btnEl = document.getElementById(t.btn);
-    
+
     if (t.id === tabId) {
       viewEl.classList.remove('hidden');
       // Set active tailwind style class
@@ -239,7 +239,7 @@ function switchView(tabId) {
       btnEl.className = "flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5";
     }
   });
-  
+
   // Re-sync canvas sizes if entering dashboard
   if (tabId === 'dashboard') {
     handleResize();
@@ -259,15 +259,15 @@ function setupOnboardingEvents() {
   // Distance Slider
   const commuteDistSlider = document.getElementById('slide-commute-dist');
   const commuteDistTxt = document.getElementById('txt-slide-commute-dist');
-  
+
   // Electricity Slider
   const energyBillSlider = document.getElementById('slide-energy-bill');
   const energyBillTxt = document.getElementById('txt-slide-energy-bill');
-  
+
   // AC hours Slider
   const energyAcSlider = document.getElementById('slide-energy-ac');
   const energyAcTxt = document.getElementById('txt-slide-energy-ac');
-  
+
   // LPG Cylinders Slider
   const energyGasSlider = document.getElementById('slide-energy-gas');
   const energyGasTxt = document.getElementById('txt-slide-energy-gas');
@@ -344,7 +344,7 @@ function setupOnboardingEvents() {
     btn.addEventListener('click', () => {
       const mode = btn.dataset.mode;
       state.quizAnswers.commuteMode = mode;
-      
+
       commuteBtns.forEach(b => {
         b.className = "quiz-btn border border-white/10 hover:border-teal-500/40 bg-white/5 p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-teal-500/5 transition-all text-center group select-none";
       });
@@ -371,7 +371,7 @@ function setupOnboardingEvents() {
   // Set initial selections visually
   const initialCommuteBtn = document.querySelector(`#onboarding-commute-group button[data-mode="${state.quizAnswers.commuteMode}"]`);
   if (initialCommuteBtn) initialCommuteBtn.click();
-  
+
   const initialDietBtn = document.querySelector(`#onboarding-diet-group button[data-diet="${state.quizAnswers.diet}"]`);
   if (initialDietBtn) initialDietBtn.click();
 
@@ -383,10 +383,10 @@ function setupOnboardingEvents() {
     saveStateToStorage();
     renderChecklist();
     syncDashboardWithState();
-    
+
     // Switch to Dashboard
     switchView('dashboard');
-    
+
     // Auto advice trigger in Spark Chat
     triggerSparkAdvice('onboarding_finished');
   });
@@ -417,7 +417,7 @@ function runQuizCalculator() {
   // Baseline total daily footprint score
   const totalBase = commuteScore + dietScore + homeEnergyTotal;
   state.dailyBaseScore = parseFloat(totalBase.toFixed(1));
-  
+
   // Real-time recalculation of Earth score
   // 1 Earth represents roughly 5.0 kg daily footprint limit
   const baseEarths = 0.5 + (state.dailyBaseScore / 5.0) * 1.0;
@@ -442,7 +442,7 @@ function renderChecklist() {
   CHECKLIST_ACTIONS.forEach(action => {
     const isCompleted = state.completedActions.includes(action.id);
     const card = document.createElement('button');
-    
+
     card.type = 'button';
     // Style toggle
     if (isCompleted) {
@@ -480,7 +480,7 @@ function toggleChecklistItem(id) {
   } else {
     state.completedActions.push(id);
   }
-  
+
   saveStateToStorage();
   renderChecklist();
   syncDashboardWithState();
@@ -498,7 +498,7 @@ function syncDashboardWithState() {
 
   const finalDailyScore = Math.max(0.0, state.dailyBaseScore - reductionSum);
   state.dailyScore = parseFloat(finalDailyScore.toFixed(1));
-  
+
   // Recalculate Earth Score based on active carbon metrics
   const activeEarths = 0.5 + (state.dailyScore / 5.0) * 1.0;
   state.earthsNeeded = parseFloat(Math.max(0.8, Math.min(8.0, activeEarths)).toFixed(1));
@@ -561,11 +561,11 @@ let autoRotate = true;
 
 function initThreeGlobe() {
   const canvasTarget = document.getElementById('canvas-3d-target');
-  const globeWrap    = document.getElementById('globe-container');
+  const globeWrap = document.getElementById('globe-container');
   if (!canvasTarget || !globeWrap) return;
 
   // Measure the visible wrapper \u2014 canvasTarget may report 0 height before CSS layout
-  const width  = globeWrap.clientWidth  || 520;
+  const width = globeWrap.clientWidth || 520;
   const height = globeWrap.clientHeight || 460;
 
   // \u2500\u2500 Scene & Camera \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -648,23 +648,23 @@ function initThreeGlobe() {
   `;
 
   // 1x1 placeholder blue pixel so the globe renders immediately while CDN loads
-  const placeholderPx  = new Uint8Array([18, 60, 160, 255]);
+  const placeholderPx = new Uint8Array([18, 60, 160, 255]);
   const placeholderTex = new THREE.DataTexture(placeholderPx, 1, 1, THREE.RGBAFormat);
   placeholderTex.needsUpdate = true;
 
   const earthMat = new THREE.ShaderMaterial({
-    vertexShader:   earthVS,
+    vertexShader: earthVS,
     fragmentShader: earthFS,
     uniforms: {
       u_earthTexture: { value: placeholderTex },
-      u_health:       { value: 0.80 },
-      u_textureReady: { value: 0.0  }
+      u_health: { value: 0.80 },
+      u_textureReady: { value: 0.0 }
     }
   });
 
   // \u2500\u2500 Real Earth Texture (CORS-enabled CDN) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   // Loads the three-globe package's equirectangular Blue-Marble day map.
-  const TX_PRIMARY  = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-day.jpg';
+  const TX_PRIMARY = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-day.jpg';
   const TX_FALLBACK = 'https://unpkg.com/three-globe/example/img/earth-day.jpg';
 
   function loadEarthTexture(url, fallbackUrl) {
@@ -708,11 +708,11 @@ function initThreeGlobe() {
         gl_FragColor = vec4(mix(smog, clean, u_health) * 1.55, rim * 0.90);
       }
     `,
-    uniforms:    { u_health: { value: 0.80 } },
-    blending:    THREE.AdditiveBlending,
-    side:        THREE.BackSide,
+    uniforms: { u_health: { value: 0.80 } },
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
     transparent: true,
-    depthWrite:  false
+    depthWrite: false
   });
   atmosphereMesh = new THREE.Mesh(new THREE.SphereGeometry(1.068, 32, 32), atmMat);
   scene.add(atmosphereMesh);
@@ -734,10 +734,10 @@ function initThreeGlobe() {
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(0.024, 0.040, 22),
       new THREE.MeshBasicMaterial({
-        color:       new THREE.Color(city.color),
-        side:        THREE.DoubleSide,
+        color: new THREE.Color(city.color),
+        side: THREE.DoubleSide,
         transparent: true,
-        opacity:     0.78
+        opacity: 0.78
       })
     );
     ring.position.copy(pos);
@@ -749,7 +749,7 @@ function initThreeGlobe() {
     const markerEl = document.getElementById(`marker-${index}`);
     if (markerEl) {
       markerEl.addEventListener('mouseenter', () => displayCityDetails(city));
-      markerEl.addEventListener('click',      () => displayCityDetails(city));
+      markerEl.addEventListener('click', () => displayCityDetails(city));
     }
   });
 
@@ -770,12 +770,12 @@ function initThreeGlobe() {
  * real equirectangular texture is applied.
  */
 function latLonToVector3(lat, lon, radius = 1.0) {
-  const phi   = (90 - lat) * (Math.PI / 180);
+  const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lon + 180) * (Math.PI / 180);
   return new THREE.Vector3(
     -(radius * Math.sin(phi) * Math.cos(theta)),
-      radius * Math.cos(phi),
-      radius * Math.sin(phi) * Math.sin(theta)
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta)
   );
 }
 
@@ -787,8 +787,8 @@ function displayCityDetails(city) {
   document.getElementById('city-card-desc').innerText = city.desc;
   const indicator = document.getElementById('city-card-indicator');
   indicator.style.backgroundColor = city.color;
-  intensityEl.style.borderColor   = city.color;
-  intensityEl.style.color         = city.color;
+  intensityEl.style.borderColor = city.color;
+  intensityEl.style.color = city.color;
 }
 
 /**
@@ -818,7 +818,7 @@ function setupGlobeDrag(container) {
   container.addEventListener('pointermove', (e) => {
     if (!isDragging) return;
     earthGroup.rotation.y += (e.clientX - prevX) * 0.006;
-    earthGroup.rotation.x  = Math.max(
+    earthGroup.rotation.x = Math.max(
       -Math.PI / 2.5,
       Math.min(Math.PI / 2.5, earthGroup.rotation.x + (e.clientY - prevY) * 0.006)
     );
@@ -832,20 +832,20 @@ function setupGlobeDrag(container) {
     container.style.cursor = 'grab';
     setTimeout(() => { autoRotate = true; }, 1500);
   };
-  container.addEventListener('pointerup',     endDrag);
+  container.addEventListener('pointerup', endDrag);
   container.addEventListener('pointercancel', endDrag);
-  container.addEventListener('pointerleave',  endDrag);
+  container.addEventListener('pointerleave', endDrag);
 }
 
 // â”€â”€ Render Loop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-let targetHealth  = 0.80;
+let targetHealth = 0.80;
 let currentHealth = 0.80;
 
 function animateGlobe() {
   animId = requestAnimationFrame(animateGlobe);
 
   if (earthMesh && earthMesh.material) {
-    targetHealth   = Math.min(1.0, Math.max(0.0, 1.0 - state.dailyScore / 24.0));
+    targetHealth = Math.min(1.0, Math.max(0.0, 1.0 - state.dailyScore / 24.0));
     currentHealth += (targetHealth - currentHealth) * 0.055;
     earthMesh.material.uniforms.u_health.value = currentHealth;
   }
@@ -894,8 +894,8 @@ function projectCityMarkers() {
     if (!el) return;
     if (visible) {
       const p = v.clone().project(camera);
-      el.style.transform = `translate(-50%,-50%) translate(${(p.x*0.5+0.5)*W}px,${(-p.y*0.5+0.5)*H}px)`;
-      el.style.display   = 'block';
+      el.style.transform = `translate(-50%,-50%) translate(${(p.x * 0.5 + 0.5) * W}px,${(-p.y * 0.5 + 0.5) * H}px)`;
+      el.style.display = 'block';
     } else {
       el.style.display = 'none';
     }
@@ -918,20 +918,20 @@ function setupChatbot() {
   const form = document.getElementById('chat-input-form');
   const input = document.getElementById('chat-user-message-input');
   const clearBtn = document.getElementById('btn-clear-chat');
-  
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const msg = input.value.trim();
     if (!msg) return;
 
     input.value = '';
-    
+
     // Append user bubble
     appendMessage('User', msg);
-    
+
     // Add typing loader
     const loaderId = appendTypingIndicator();
-    
+
     try {
       // Connect / Fetch Advice response from Gemini Engine
       const advice = await fetchGeminiCoachAdvice(msg);
@@ -1062,54 +1062,71 @@ The user's current environmental metrics are:
 
 Provide a highly personalized, practical response in 2-3 sentences. Reference their specific metrics (Carbon score or Earths score) and suggest high-impact choices. Keep your answer encouraging and modern.`;
 
-  if (!state.geminiKey) {
-    // API key missing fallback simulated responses
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(getSimulatedOfflineResponse(userPrompt, systemContext));
-      }, 950);
+  // 1. Try Vercel Serverless Function First
+  try {
+    const response = await fetch('/api/coach', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        prompt: userPrompt,
+        context: systemContext
+      })
     });
-  }
 
-  // Real fetch connection request to Gemini API
-  // Using gemini-1.5-flash which is widely compatible
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.geminiKey}`;
-  
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: `${systemContext}\n\nUser message: "${userPrompt}"\n\nEco-Coach Response:` }]
-        }
-      ],
-      generationConfig: {
-        maxOutputTokens: 150,
-        temperature: 0.7
+    if (response.ok) {
+      const data = await response.json();
+      if (data.text) {
+        return data.text;
       }
-    })
+    }
+  } catch (e) {
+    console.warn('Vercel API route not responding, checking client-side key config:', e);
+  }
+
+  // 2. Fallback to client-side key (if hardcoded)
+  if (state.geminiKey) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.geminiKey}`;
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: `${systemContext}\n\nUser Question: ${userPrompt}` }]
+            }
+          ]
+        })
+      });
+
+      if (response.ok) {
+        const json = await response.json();
+        if (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts[0]) {
+          return json.candidates[0].content.parts[0].text.trim();
+        }
+      }
+    } catch (err) {
+      console.error('Client-side API call failed:', err);
+    }
+  }
+
+  // 3. Fallback to simulated offline responses
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(getSimulatedOfflineResponse(userPrompt, systemContext));
+    }, 950);
   });
-
-  if (!response.ok) {
-    throw new Error(`Gemini API Request failed with status: ${response.status}`);
-  }
-
-  const json = await response.json();
-  if (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts[0]) {
-    return json.candidates[0].content.parts[0].text.trim();
-  }
-  
-  throw new Error('Malformed Gemini response body payload');
 }
 
 // Fallback offline simulated responses engine
 function getSimulatedOfflineResponse(prompt, context) {
   const query = prompt.toLowerCase();
-  
+
   let resp = "";
   if (query.includes('lower') || query.includes('earth score') || query.includes('reduce')) {
     resp = `To reduce your **${state.earthsNeeded.toFixed(1)} Earths** budget score, I suggest checking off more items on your daily checklist. Adding solar cells or transitioning to electric commuting will also cut your baseline emissions profile substantially.`;
@@ -1137,7 +1154,7 @@ function getSimulatedOfflineResponse(prompt, context) {
     // General tailored greeting fallback
     resp = `Under your current lifestyle, your daily score sits at **${state.dailyScore.toFixed(1)} kg CO\u2082e**. Completing habits like eating vegetarian meals and drying clothes naturally reduces your footprint in real-time. Keep it up!`;
   }
-  
+
   return resp;
 }
 
@@ -1247,7 +1264,7 @@ function updateComparisonTab() {
     const pct = (item.emissions / maxEmissions) * 100;
     const barWrap = document.createElement('button');
     barWrap.type = 'button';
-    
+
     if (item.isUser) {
       barWrap.className = "w-full text-left p-3 rounded-xl border border-teal-500 bg-teal-500/10 shadow-[0_0_15px_rgba(20,184,166,0.15)] flex flex-col gap-1.5 transition-all duration-300 transform scale-[1.01] hover:scale-[1.02]";
     } else {
@@ -1299,8 +1316,8 @@ function displayCompareSpotlight(item, userTons) {
     const ratio = userTons / item.emissions;
     let ratioText = '';
     if (ratio < 1.0) {
-      ratioText = `${(ratio * 100).toFixed(0)}% of their average (${(1/ratio).toFixed(1)}x smaller)`;
-      document.getElementById('txt-compare-spotlight-fact').innerText = `Awesome! Your footprint is smaller than the per-capita average of ${item.name} by ${(1/ratio).toFixed(1)}x.`;
+      ratioText = `${(ratio * 100).toFixed(0)}% of their average (${(1 / ratio).toFixed(1)}x smaller)`;
+      document.getElementById('txt-compare-spotlight-fact').innerText = `Awesome! Your footprint is smaller than the per-capita average of ${item.name} by ${(1 / ratio).toFixed(1)}x.`;
     } else {
       ratioText = `${(ratio * 100).toFixed(0)}% of their average (${ratio.toFixed(1)}x larger)`;
       document.getElementById('txt-compare-spotlight-fact').innerText = `Your footprint is currently ${ratio.toFixed(1)}x larger than the per-capita average of ${item.name}.`;
