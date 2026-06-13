@@ -125,24 +125,24 @@
     </aside>
 
     <!-- Main Workspace Panel -->
-    <main class="flex-grow md:h-full overflow-y-auto relative z-10 px-4 py-6 md:px-8 pb-24 md:pb-6">
+    <main class="flex-grow lg:h-full overflow-y-auto relative z-10 px-3 py-4 md:px-8 md:py-6 pb-20 md:pb-6">
 
       <!-- ================= TAB 1: DASHBOARD ================= -->
-      <div id="tab-dashboard-view" class="tab-pane flex flex-col gap-6 md:h-full">
+      <div id="tab-dashboard-view" class="tab-pane flex flex-col gap-4 md:gap-6 lg:h-full">
         <!-- Top Metrics Header -->
         <header class="flex justify-between items-center shrink-0">
           <div>
-            <h1 class="text-3xl font-heading font-extrabold text-white tracking-tight" id="dashboard-title">EcoSense AI</h1>
-            <p class="text-sm text-slate-400" id="dashboard-subtitle">Smart Carbon Reduction Assistant</p>
+            <h1 class="text-xl md:text-3xl font-heading font-extrabold text-white tracking-tight" id="dashboard-title">EcoSense AI</h1>
+            <p class="text-xs md:text-sm text-slate-400" id="dashboard-subtitle">Smart Carbon Reduction Assistant</p>
           </div>
         </header>
 
         <!-- Split Screen Panels -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow lg:overflow-hidden min-h-0">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 flex-grow lg:overflow-hidden lg:min-h-0">
           
           <!-- Column 1: Smart Carbon Calculator (Left Panel, 4 cols) -->
-          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto lg:h-full pr-1 min-h-0 glass-panel border-glow-ice p-5 rounded-2xl">
-            <h2 class="text-lg font-heading font-extrabold text-white">Smart Carbon Calculator</h2>
+          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto lg:h-full lg:min-h-0 glass-panel border-glow-ice p-4 md:p-5 rounded-2xl">
+            <h2 class="text-base md:text-lg font-heading font-extrabold text-white">Smart Carbon Calculator</h2>
             
             <div class="flex flex-col gap-4 mt-2">
               <!-- Group 1: Transportation -->
@@ -152,8 +152,8 @@
                 </span>
                 
                 <div class="flex flex-col gap-1.5">
-                  <label for="vehicle-type" class="text-[11px] text-slate-400 font-semibold">Vehicle Type</label>
-                  <select id="vehicle-type" name="vehicleType" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all">
+                  <label for="vehicle-type" class="text-xs text-slate-400 font-semibold">Vehicle Type</label>
+                  <select id="vehicle-type" name="vehicleType" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all min-h-[42px]">
                     <option value="Car (Petrol/Diesel)">Car (Petrol/Diesel)</option>
                     <option value="Car (Electric)">Car (Electric)</option>
                     <option value="Two-Wheeler">Two-Wheeler</option>
@@ -163,13 +163,13 @@
                 </div>
                 
                 <div class="flex flex-col gap-1.5">
-                  <label for="daily-distance" class="text-[11px] text-slate-400 font-semibold">Daily Distance (km)</label>
-                  <input type="number" id="daily-distance" name="dailyDistance" value="15" min="0" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all">
+                  <label for="daily-distance" class="text-xs text-slate-400 font-semibold">Daily Distance (km)</label>
+                  <input type="number" id="daily-distance" name="dailyDistance" value="15" min="0" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all min-h-[42px]">
                 </div>
                 
                 <div class="flex flex-col gap-1.5">
-                  <label for="days-per-week" class="text-[11px] text-slate-400 font-semibold">Days per week</label>
-                  <input type="number" id="days-per-week" name="daysPerWeek" value="5" min="0" max="7" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all">
+                  <label for="days-per-week" class="text-xs text-slate-400 font-semibold">Days per week</label>
+                  <input type="number" id="days-per-week" name="daysPerWeek" value="5" min="0" max="7" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all min-h-[42px]">
                 </div>
               </div>
 
@@ -182,8 +182,8 @@
                   ⚡ Energy
                 </span>
                 <div class="flex flex-col gap-1.5">
-                  <label for="monthly-electricity" class="text-[11px] text-slate-400 font-semibold">Monthly Electricity (kWh)</label>
-                  <input type="number" id="monthly-electricity" name="monthlyElectricity" value="150" min="0" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all">
+                  <label for="monthly-electricity" class="text-xs text-slate-400 font-semibold">Monthly Electricity (kWh)</label>
+                  <input type="number" id="monthly-electricity" name="monthlyElectricity" value="150" min="0" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all min-h-[42px]">
                 </div>
               </div>
 
@@ -197,8 +197,8 @@
                 </span>
                 
                 <div class="flex flex-col gap-1.5">
-                  <label for="diet-preference" class="text-[11px] text-slate-400 font-semibold">Diet Preference</label>
-                  <select id="diet-preference" name="dietPreference" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all">
+                  <label for="diet-preference" class="text-xs text-slate-400 font-semibold">Diet Preference</label>
+                  <select id="diet-preference" name="dietPreference" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all min-h-[42px]">
                     <option value="Mixed">Mixed</option>
                     <option value="Vegetarian">Vegetarian</option>
                     <option value="Vegan">Vegan</option>
@@ -206,8 +206,8 @@
                 </div>
                 
                 <div class="flex flex-col gap-1.5">
-                  <label for="recycling-habits" class="text-[11px] text-slate-400 font-semibold">Recycling Habits</label>
-                  <select id="recycling-habits" name="recyclingHabits" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all">
+                  <label for="recycling-habits" class="text-xs text-slate-400 font-semibold">Recycling Habits</label>
+                  <select id="recycling-habits" name="recyclingHabits" class="bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-teal-500/50 text-slate-200 transition-all min-h-[42px]">
                     <option value="Sometimes">Sometimes</option>
                     <option value="Always">Always</option>
                     <option value="Never">Never</option>
@@ -215,14 +215,14 @@
                 </div>
               </div>
 
-              <button type="button" id="calculate-btn" class="w-full mt-4 bg-teal-500 hover:bg-teal-600 text-white font-heading font-bold py-2.5 rounded-xl text-xs transition-all duration-300 shadow-[0_0_15px_rgba(20,184,166,0.25)]">
+              <button type="button" id="calculate-btn" class="w-full mt-4 bg-teal-500 hover:bg-teal-600 active:bg-teal-700 text-white font-heading font-bold py-3 rounded-xl text-sm transition-all duration-300 shadow-[0_0_15px_rgba(20,184,166,0.25)] min-h-[48px]">
                 Calculate My Impact
               </button>
             </div>
           </div>
 
           <!-- Column 2: Carbon Footprint + AI Assistant + Action Planner (Middle Panel, 4 cols) -->
-          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto lg:h-full pr-1 min-h-0">
+          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto lg:h-full lg:min-h-0">
             <!-- Block 1: Carbon Footprint -->
             <div class="glass-panel border-glow-teal p-5 rounded-2xl flex flex-col gap-3 relative">
               <span class="text-xs font-bold tracking-wider uppercase text-teal-400 font-heading">Carbon Footprint</span>
@@ -263,14 +263,12 @@
             </div>
 
             <!-- Block 2: EcoSense AI Assistant -->
-            <div class="glass-panel border-glow-ice p-5 rounded-2xl flex flex-col gap-3 flex-grow justify-between min-h-[200px]">
-              <div>
-                <span class="text-xs font-bold tracking-wider uppercase text-sky-400 font-heading">EcoSense AI Assistant</span>
-                <div id="recommendations-container" class="flex flex-col gap-3 mt-3">
-                  <!-- Dynamically rendered recommendation items -->
-                </div>
+            <div class="glass-panel border-glow-ice p-4 md:p-5 rounded-2xl flex flex-col gap-3">
+              <span class="text-xs font-bold tracking-wider uppercase text-sky-400 font-heading shrink-0">EcoSense AI Assistant</span>
+              <div id="recommendations-container" class="flex flex-col gap-3 overflow-y-auto max-h-52 lg:max-h-64 pr-1">
+                <!-- Dynamically rendered recommendation items -->
               </div>
-              <div class="mt-4 border-t border-white/5 pt-3">
+              <div class="border-t border-white/5 pt-3 shrink-0">
                 <div class="w-full bg-teal-500/10 border border-teal-500/20 px-3 py-2 rounded-xl text-center text-xs font-semibold text-teal-400" id="total-possible-improvement">
                   Total possible improvement: <span id="txt-total-improvement">--</span> kg CO₂/month
                 </div>
@@ -278,7 +276,7 @@
             </div>
 
             <!-- Block 3: Carbon Action Planner -->
-            <div class="glass-panel border-glow-violet p-5 rounded-2xl flex flex-col gap-3">
+            <div class="glass-panel border-glow-violet p-4 md:p-5 rounded-2xl flex flex-col gap-3">
               <span class="text-xs font-bold tracking-wider uppercase text-violet-400 font-heading">Carbon Action Planner</span>
               <p class="text-[11px] text-slate-400 leading-normal">Set a reduction goal to get a personalized 30-day action plan.</p>
               
@@ -286,7 +284,7 @@
                 <input type="range" id="reduction-goal" name="reductionGoal" min="10" max="50" step="10" value="20" class="flex-grow">
                 <span id="reduction-goal-val" class="text-xs font-bold text-teal-400 w-16 text-right font-heading">20% Goal</span>
               </div>
-              <button type="button" id="generate-plan-btn" class="w-full mt-2 bg-violet-600 hover:bg-violet-700 text-white font-heading font-bold py-2 rounded-xl text-xs transition-all duration-300">
+              <button type="button" id="generate-plan-btn" class="w-full mt-2 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-heading font-bold py-3 rounded-xl text-sm transition-all duration-300 min-h-[44px]">
                 Generate Plan
               </button>
               <div id="plan-output-container" class="max-h-48 overflow-y-auto mt-1 flex flex-col gap-2 pr-1 text-slate-300">
@@ -296,9 +294,9 @@
           </div>
 
           <!-- Column 3: Sustainability Score + Impact Simulator (Right Panel, 4 cols) -->
-          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto lg:h-full pr-1 min-h-0">
+          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto lg:h-full lg:min-h-0">
             <!-- Block 1: Sustainability Score -->
-            <div class="glass-panel border-glow-ice p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden">
+            <div class="glass-panel border-glow-ice p-4 md:p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden">
               <span class="text-xs font-bold tracking-wider uppercase text-teal-400 font-heading">Sustainability Score</span>
               
               <div class="flex items-center gap-6 justify-center my-1.5">
@@ -323,7 +321,7 @@
             </div>
 
             <!-- Block 2: Impact Simulator -->
-            <div class="glass-panel border-glow-teal p-5 rounded-2xl flex flex-col gap-4 flex-grow justify-between">
+            <div class="glass-panel border-glow-teal p-4 md:p-5 rounded-2xl flex flex-col gap-4 lg:flex-grow">
               <div>
                 <span class="text-xs font-bold tracking-wider uppercase text-teal-400 font-heading">Impact Simulator</span>
                 <p class="text-[11px] text-slate-400 leading-normal mt-1">Test scenarios to see your potential impact.</p>
@@ -370,11 +368,11 @@
       </div>
 
       <!-- ================= TAB 2: ECO-COACH ================= -->
-      <div id="tab-coach-view" class="tab-pane hidden flex flex-col gap-4 h-full">
+      <div id="tab-coach-view" class="tab-pane hidden flex flex-col gap-4 lg:h-full">
         <header class="flex justify-between items-center shrink-0">
           <div>
-            <h1 class="text-3xl font-heading font-extrabold text-white tracking-tight">Eco-Coach AI Workspace</h1>
-            <p class="text-sm text-slate-400">Consult with Spark, your environmental agent, to map out specific carbon-reduction targets.</p>
+            <h1 class="text-xl md:text-3xl font-heading font-extrabold text-white tracking-tight">Eco-Coach AI Workspace</h1>
+            <p class="text-xs md:text-sm text-slate-400">Consult with Spark, your environmental agent, to map out specific carbon-reduction targets.</p>
           </div>
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
@@ -447,8 +445,8 @@
         <!-- Header -->
         <header class="flex justify-between items-center shrink-0">
           <div>
-            <h1 class="text-3xl font-heading font-extrabold text-white tracking-tight">3D Planetary Grid</h1>
-            <p class="text-sm text-slate-400">Explore regional electricity grid carbon intensities and atmospheric health levels on our 3D interactive Earth.</p>
+            <h1 class="text-xl md:text-3xl font-heading font-extrabold text-white tracking-tight">3D Planetary Grid</h1>
+            <p class="text-xs md:text-sm text-slate-400">Explore regional electricity grid carbon intensities and atmospheric health levels on our 3D interactive Earth.</p>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-xs font-heading font-bold text-slate-400 uppercase tracking-wider">Atmospheric Visualizer</span>
@@ -517,8 +515,8 @@
       <div id="tab-compare-view" class="tab-pane hidden flex flex-col gap-6 md:h-full">
         <header class="flex justify-between items-center shrink-0">
           <div>
-            <h1 class="text-3xl font-heading font-extrabold text-white tracking-tight">Global Footprint Comparisons</h1>
-            <p class="text-sm text-slate-400">See how your annualized active carbon footprint compares against per-capita national averages worldwide.</p>
+            <h1 class="text-xl md:text-3xl font-heading font-extrabold text-white tracking-tight">Global Footprint Comparisons</h1>
+            <p class="text-xs md:text-sm text-slate-400">See how your annualized active carbon footprint compares against per-capita national averages worldwide.</p>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-xs font-heading font-bold text-slate-400 uppercase tracking-wider">Metrics: Annualized Metric Tons CO₂e</span>

@@ -203,3 +203,67 @@ input[type="range"]::-webkit-slider-thumb:hover {
   0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
   40% { transform: translateY(-6px); opacity: 1; }
 }
+
+/* ========= MOBILE FRIENDLINESS ========= */
+
+/* Remove tap highlight flash on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Touch-friendly range sliders */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #14b8a6, #818cf8);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.4);
+  border: 2px solid rgba(255,255,255,0.2);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #14b8a6, #818cf8);
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+/* Scrollable recommendations container styled scrollbar */
+#recommendations-container::-webkit-scrollbar,
+#plan-output-container::-webkit-scrollbar {
+  width: 4px;
+}
+#recommendations-container::-webkit-scrollbar-thumb,
+#plan-output-container::-webkit-scrollbar-thumb {
+  background: rgba(20, 184, 166, 0.3);
+  border-radius: 999px;
+}
+
+/* Mobile: tighter scrollbar */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+
+  /* Prevent iOS zoom on input focus (needs font-size >= 16px) */
+  input[type="number"],
+  input[type="text"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
