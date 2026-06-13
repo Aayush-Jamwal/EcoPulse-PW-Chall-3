@@ -660,11 +660,11 @@ function generateActionPlan() {
     plans.push({ day: 'Days 26-30', title: 'Implement Zero-Waste Sourcing', desc: 'Use canvas shopping bags to fully refuse vendor plastic bags.' });
   }
 
-  plans.forEach(plan => {
+  plans.forEach((plan, idx) => {
     const item = document.createElement('div');
-    item.className = "flex items-start gap-2.5 p-2.5 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-300";
+    item.className = "flex items-start gap-3 p-2.5 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-300";
     item.innerHTML = `
-      <input type="checkbox" class="mt-0.5 accent-teal-500 rounded border-white/20 bg-slate-900">
+      <span class="mt-0.5 w-5 h-5 shrink-0 flex items-center justify-center rounded-full bg-violet-500/20 border border-violet-500/30 text-[10px] font-extrabold text-violet-400 font-heading">${idx + 1}</span>
       <div class="flex flex-col gap-0.5">
         <span class="font-bold text-white font-heading">${plan.day}: ${plan.title}</span>
         <span class="text-[10px] text-slate-400 leading-relaxed">${plan.desc}</span>

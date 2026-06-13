@@ -141,7 +141,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow lg:overflow-hidden min-h-0">
           
           <!-- Column 1: Smart Carbon Calculator (Left Panel, 4 cols) -->
-          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto pr-1 min-h-0 glass-panel border-glow-ice p-5 rounded-2xl">
+          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto lg:h-full pr-1 min-h-0 glass-panel border-glow-ice p-5 rounded-2xl">
             <h2 class="text-lg font-heading font-extrabold text-white">Smart Carbon Calculator</h2>
             
             <div class="flex flex-col gap-4 mt-2">
@@ -222,9 +222,9 @@
           </div>
 
           <!-- Column 2: Carbon Footprint + AI Assistant + Action Planner (Middle Panel, 4 cols) -->
-          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto pr-1 min-h-0">
+          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto lg:h-full pr-1 min-h-0">
             <!-- Block 1: Carbon Footprint -->
-            <div class="glass-panel border-glow-teal p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden">
+            <div class="glass-panel border-glow-teal p-5 rounded-2xl flex flex-col gap-3 relative">
               <span class="text-xs font-bold tracking-wider uppercase text-teal-400 font-heading">Carbon Footprint</span>
               <div class="my-2 flex flex-col items-center justify-center py-2">
                 <span id="carbon-footprint" class="text-5xl font-heading font-extrabold text-white tracking-tight">--</span>
@@ -289,14 +289,14 @@
               <button type="button" id="generate-plan-btn" class="w-full mt-2 bg-violet-600 hover:bg-violet-700 text-white font-heading font-bold py-2 rounded-xl text-xs transition-all duration-300">
                 Generate Plan
               </button>
-              <div id="plan-output-container" class="max-h-36 overflow-y-auto mt-1 flex flex-col gap-2 pr-1 text-slate-300">
+              <div id="plan-output-container" class="max-h-48 overflow-y-auto mt-1 flex flex-col gap-2 pr-1 text-slate-300">
                 <!-- Action items -->
               </div>
             </div>
           </div>
 
           <!-- Column 3: Sustainability Score + Impact Simulator (Right Panel, 4 cols) -->
-          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto pr-1 min-h-0">
+          <div class="lg:col-span-4 flex flex-col gap-4 lg:overflow-y-auto lg:h-full pr-1 min-h-0">
             <!-- Block 1: Sustainability Score -->
             <div class="glass-panel border-glow-ice p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden">
               <span class="text-xs font-bold tracking-wider uppercase text-teal-400 font-heading">Sustainability Score</span>
