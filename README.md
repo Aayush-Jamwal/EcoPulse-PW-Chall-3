@@ -61,7 +61,7 @@ Make sure you have [Node.js](https://nodejs.org/) installed.
 
 ---
 
-## 🔑 Activating Gemini AI Coaching
+## 🔑 Activating Gemini AI Coaching ( If Required Else it is hardcoded)
 By default, the application runs using a high-fidelity simulated offline engine. To enable **live Gemini AI suggestions**:
 1. Open [app.js](file:///c:/Prompt%20Wars/Challenge%203-%20CArbon%20Footprint/app.js) in your text editor.
 2. Locate the global constant at the very top of the file:
