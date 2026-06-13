@@ -186,17 +186,30 @@ function saveStateToStorage() {
 
 function initTabRouting() {
   const tabs = [
-    { id: 'onboarding', btn: 'nav-onboarding', view: 'tab-onboarding-view' },
-    { id: 'dashboard', btn: 'nav-dashboard', view: 'tab-dashboard-view' },
-    { id: 'coach', btn: 'nav-coach', view: 'tab-coach-view' },
-    { id: 'compare', btn: 'nav-compare', view: 'tab-compare-view' }
+    { id: 'onboarding', btn: 'nav-onboarding', mobileBtn: 'nav-onboarding-mobile', view: 'tab-onboarding-view' },
+    { id: 'dashboard', btn: 'nav-dashboard', mobileBtn: 'nav-dashboard-mobile', view: 'tab-dashboard-view' },
+    { id: 'coach', btn: 'nav-coach', mobileBtn: 'nav-coach-mobile', view: 'tab-coach-view' },
+    { id: 'compare', btn: 'nav-compare', mobileBtn: 'nav-compare-mobile', view: 'tab-compare-view' }
   ];
 
   tabs.forEach(tab => {
+    // Desktop Nav Click
     const btnEl = document.getElementById(tab.btn);
     if (btnEl) {
       btnEl.addEventListener('click', () => {
-        // Prevent dashboard / coach if onboarding is not done yet
+        if (!state.quizDone && tab.id !== 'onboarding') {
+          alert('Please finish the Onboarding Calculator first to set your carbon baseline.');
+          switchView('onboarding');
+          return;
+        }
+        switchView(tab.id);
+      });
+    }
+
+    // Mobile Nav Click
+    const mobileBtnEl = document.getElementById(tab.mobileBtn);
+    if (mobileBtnEl) {
+      mobileBtnEl.addEventListener('click', () => {
         if (!state.quizDone && tab.id !== 'onboarding') {
           alert('Please finish the Onboarding Calculator first to set your carbon baseline.');
           switchView('onboarding');
@@ -219,24 +232,29 @@ function initTabRouting() {
 // Transition views and style active navigation sidebar button
 function switchView(tabId) {
   const tabs = [
-    { id: 'onboarding', btn: 'nav-onboarding', view: 'tab-onboarding-view' },
-    { id: 'dashboard', btn: 'nav-dashboard', view: 'tab-dashboard-view' },
-    { id: 'coach', btn: 'nav-coach', view: 'tab-coach-view' },
-    { id: 'compare', btn: 'nav-compare', view: 'tab-compare-view' }
+    { id: 'onboarding', btn: 'nav-onboarding', mobileBtn: 'nav-onboarding-mobile', view: 'tab-onboarding-view' },
+    { id: 'dashboard', btn: 'nav-dashboard', mobileBtn: 'nav-dashboard-mobile', view: 'tab-dashboard-view' },
+    { id: 'coach', btn: 'nav-coach', mobileBtn: 'nav-coach-mobile', view: 'tab-coach-view' },
+    { id: 'compare', btn: 'nav-compare', mobileBtn: 'nav-compare-mobile', view: 'tab-compare-view' }
   ];
 
   tabs.forEach(t => {
     const viewEl = document.getElementById(t.view);
     const btnEl = document.getElementById(t.btn);
+    const mobileBtnEl = document.getElementById(t.mobileBtn);
 
     if (t.id === tabId) {
       viewEl.classList.remove('hidden');
-      // Set active tailwind style class
-      btnEl.className = "flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-teal-400 bg-teal-500/10 border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.15)]";
+      // Set active desktop class
+      if (btnEl) btnEl.className = "flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-teal-400 bg-teal-500/10 border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.15)]";
+      // Set active mobile class
+      if (mobileBtnEl) mobileBtnEl.className = "flex flex-col items-center justify-center gap-1 text-teal-400 transition-all";
     } else {
       viewEl.classList.add('hidden');
-      // Set inactive tailwind class
-      btnEl.className = "flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5";
+      // Set inactive desktop class
+      if (btnEl) btnEl.className = "flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5";
+      // Set inactive mobile class
+      if (mobileBtnEl) mobileBtnEl.className = "flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200 transition-all";
     }
   });
 
