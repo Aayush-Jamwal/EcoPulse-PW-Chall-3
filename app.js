@@ -4,7 +4,7 @@
  * and context-aware Gemini AI integrations.
  */
 
-// Hardcoded Gemini API Key (set this to your free Gemini key to enable live AI coaching out of the box)
+// Hardcoded Gemini API Key (leave empty - key is stored securely in Vercel env vars via /api/coach serverless proxy)
 const GEMINI_API_KEY = '';
 
 // ================= GLOBAL DATA & CALCULATIONS =================
@@ -107,21 +107,43 @@ const CITY_HOTSPOTS = [
 
 // ================= STATE MANAGEMENT =================
 let state = {
-  quizDone: false,
-  quizAnswers: {
-    commuteDist: 20,
-    commuteMode: 'drive-alone',
-    diet: 'vegetarian',
-    energyBill: 2000,
-    energyAc: 4,
-    energyGas: 1,
-    solar: false
-  },
-  dailyBaseScore: 12.5,
-  dailyScore: 12.5,
-  earthsNeeded: 3.4,
+  // Calculator inputs
+  vehicleType: 'Car (Petrol/Diesel)',
+  dailyDistance: 15,
+  daysPerWeek: 5,
+  monthlyElectricity: 150,
+  dietPreference: 'Mixed',
+  recyclingHabits: 'Sometimes',
+
+  // Calculated values
+  monthlyEmissions: 288,
+  sustainabilityScore: 64,
+  transportShare: 65,
+  energyShare: 123,
+  lifestyleShare: 100,
+
+  // Simulator
+  drivingReduction: 0,
+  energyReduction: 0,
+
+  // Planner
+  reductionGoal: 20,
+
+  // Compatibility / Legacy values for Coach & Compare
+  dailyScore: 9.6,
+  dailyBaseScore: 9.6,
+  earthsNeeded: 2.8,
   completedActions: [],
-  geminiKey: ''
+  geminiKey: '',
+  quizAnswers: {
+    commuteDist: 15,
+    commuteMode: 'drive-alone',
+    diet: 'mixed',
+    energyBill: 1200,
+    energyAc: 0,
+    energyGas: 0,
+    solar: false
+  }
 };
 
 // ================= THREE.JS GLOBE GLOBALS =================
@@ -135,28 +157,26 @@ let animId = null;
 document.addEventListener('DOMContentLoaded', () => {
   loadSavedState();
   initTabRouting();
-  setupOnboardingEvents();
-  setupChecklist();
+  syncInputsFromState();
+  setupEcoSenseCalculatorEvents();
   setupChatbot();
 
   // Start Three.js Globe rendering
   initThreeGlobe();
 
   // Perform first calculations
-  runQuizCalculator();
-  syncDashboardWithState();
+  runEcoSenseCalculator();
 
-  // Enforce initial view based on quiz status
-  if (!state.quizDone) {
-    switchView('onboarding');
-  } else {
-    switchView('dashboard');
-  }
+  // Set default view to dashboard
+  switchView('dashboard');
+
+  // Generate default plan on load
+  generateActionPlan();
 });
 
 // Load state from local storage
 function loadSavedState() {
-  const localData = localStorage.getItem('ecopulse2_state');
+  const localData = localStorage.getItem('ecosense_state');
   if (localData) {
     try {
       const parsed = JSON.parse(localData);
@@ -172,22 +192,65 @@ function loadSavedState() {
 
 // Save active state to local storage
 function saveStateToStorage() {
-  localStorage.setItem('ecopulse2_state', JSON.stringify({
-    quizDone: state.quizDone,
-    quizAnswers: state.quizAnswers,
-    dailyBaseScore: state.dailyBaseScore,
-    dailyScore: state.dailyScore,
-    earthsNeeded: state.earthsNeeded,
+  localStorage.setItem('ecosense_state', JSON.stringify({
+    vehicleType: state.vehicleType,
+    dailyDistance: state.dailyDistance,
+    daysPerWeek: state.daysPerWeek,
+    monthlyElectricity: state.monthlyElectricity,
+    dietPreference: state.dietPreference,
+    recyclingHabits: state.recyclingHabits,
+    monthlyEmissions: state.monthlyEmissions,
+    sustainabilityScore: state.sustainabilityScore,
+    transportShare: state.transportShare,
+    energyShare: state.energyShare,
+    lifestyleShare: state.lifestyleShare,
+    drivingReduction: state.drivingReduction,
+    energyReduction: state.energyReduction,
+    reductionGoal: state.reductionGoal,
     completedActions: state.completedActions
   }));
+}
+
+// Sync inputs from state to DOM elements
+function syncInputsFromState() {
+  const fields = {
+    'vehicle-type': state.vehicleType,
+    'daily-distance': state.dailyDistance,
+    'days-per-week': state.daysPerWeek,
+    'monthly-electricity': state.monthlyElectricity,
+    'diet-preference': state.dietPreference,
+    'recycling-habits': state.recyclingHabits
+  };
+
+  for (const [id, val] of Object.entries(fields)) {
+    const el = document.getElementById(id);
+    if (el && val !== undefined) {
+      el.value = val;
+    }
+  }
+
+  const goalSlider = document.getElementById('reduction-goal');
+  if (goalSlider && state.reductionGoal !== undefined) {
+    goalSlider.value = state.reductionGoal;
+  }
+
+  const drivingSlider = document.getElementById('reduce-driving-slider');
+  if (drivingSlider && state.drivingReduction !== undefined) {
+    drivingSlider.value = state.drivingReduction;
+  }
+
+  const energySlider = document.getElementById('reduce-energy-slider');
+  if (energySlider && state.energyReduction !== undefined) {
+    energySlider.value = state.energyReduction;
+  }
 }
 
 // ================= ROUTING & TAB NAVIGATION =================
 
 function initTabRouting() {
   const tabs = [
-    { id: 'onboarding', btn: 'nav-onboarding', mobileBtn: 'nav-onboarding-mobile', view: 'tab-onboarding-view' },
     { id: 'dashboard', btn: 'nav-dashboard', mobileBtn: 'nav-dashboard-mobile', view: 'tab-dashboard-view' },
+    { id: 'globe', btn: 'nav-globe', mobileBtn: 'nav-globe-mobile', view: 'tab-globe-view' },
     { id: 'coach', btn: 'nav-coach', mobileBtn: 'nav-coach-mobile', view: 'tab-coach-view' },
     { id: 'compare', btn: 'nav-compare', mobileBtn: 'nav-compare-mobile', view: 'tab-compare-view' }
   ];
@@ -197,11 +260,6 @@ function initTabRouting() {
     const btnEl = document.getElementById(tab.btn);
     if (btnEl) {
       btnEl.addEventListener('click', () => {
-        if (!state.quizDone && tab.id !== 'onboarding') {
-          alert('Please finish the Onboarding Calculator first to set your carbon baseline.');
-          switchView('onboarding');
-          return;
-        }
         switchView(tab.id);
       });
     }
@@ -210,30 +268,17 @@ function initTabRouting() {
     const mobileBtnEl = document.getElementById(tab.mobileBtn);
     if (mobileBtnEl) {
       mobileBtnEl.addEventListener('click', () => {
-        if (!state.quizDone && tab.id !== 'onboarding') {
-          alert('Please finish the Onboarding Calculator first to set your carbon baseline.');
-          switchView('onboarding');
-          return;
-        }
         switchView(tab.id);
       });
     }
   });
-
-  // Dashboard page mini button
-  const adjustBtn = document.getElementById('btn-retake-quiz-dash');
-  if (adjustBtn) {
-    adjustBtn.addEventListener('click', () => {
-      switchView('onboarding');
-    });
-  }
 }
 
 // Transition views and style active navigation sidebar button
 function switchView(tabId) {
   const tabs = [
-    { id: 'onboarding', btn: 'nav-onboarding', mobileBtn: 'nav-onboarding-mobile', view: 'tab-onboarding-view' },
     { id: 'dashboard', btn: 'nav-dashboard', mobileBtn: 'nav-dashboard-mobile', view: 'tab-dashboard-view' },
+    { id: 'globe', btn: 'nav-globe', mobileBtn: 'nav-globe-mobile', view: 'tab-globe-view' },
     { id: 'coach', btn: 'nav-coach', mobileBtn: 'nav-coach-mobile', view: 'tab-coach-view' },
     { id: 'compare', btn: 'nav-compare', mobileBtn: 'nav-compare-mobile', view: 'tab-compare-view' }
   ];
@@ -244,13 +289,13 @@ function switchView(tabId) {
     const mobileBtnEl = document.getElementById(t.mobileBtn);
 
     if (t.id === tabId) {
-      viewEl.classList.remove('hidden');
+      if (viewEl) viewEl.classList.remove('hidden');
       // Set active desktop class
       if (btnEl) btnEl.className = "flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-teal-400 bg-teal-500/10 border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.15)]";
       // Set active mobile class
       if (mobileBtnEl) mobileBtnEl.className = "flex flex-col items-center justify-center gap-1 text-teal-400 transition-all";
     } else {
-      viewEl.classList.add('hidden');
+      if (viewEl) viewEl.classList.add('hidden');
       // Set inactive desktop class
       if (btnEl) btnEl.className = "flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5";
       // Set inactive mobile class
@@ -258,8 +303,8 @@ function switchView(tabId) {
     }
   });
 
-  // Re-sync canvas sizes if entering dashboard
-  if (tabId === 'dashboard') {
+  // Re-sync canvas sizes if entering globe view
+  if (tabId === 'globe') {
     handleResize();
   }
 
@@ -269,304 +314,364 @@ function switchView(tabId) {
   }
 }
 
-// ================= SETTINGS CONFIG MODAL REMOVED =================
+// ================= SMART CARBON CALCULATOR LOGIC =================
 
-// ================= FOOTPRINT CALCULATOR LOGIC (ONBOARDING) =================
+function setupEcoSenseCalculatorEvents() {
+  const inputs = [
+    'vehicle-type', 'daily-distance', 'days-per-week', 
+    'monthly-electricity', 'diet-preference', 'recycling-habits'
+  ];
 
-function setupOnboardingEvents() {
-  // Distance Slider
-  const commuteDistSlider = document.getElementById('slide-commute-dist');
-  const commuteDistTxt = document.getElementById('txt-slide-commute-dist');
-
-  // Electricity Slider
-  const energyBillSlider = document.getElementById('slide-energy-bill');
-  const energyBillTxt = document.getElementById('txt-slide-energy-bill');
-
-  // AC hours Slider
-  const energyAcSlider = document.getElementById('slide-energy-ac');
-  const energyAcTxt = document.getElementById('txt-slide-energy-ac');
-
-  // LPG Cylinders Slider
-  const energyGasSlider = document.getElementById('slide-energy-gas');
-  const energyGasTxt = document.getElementById('txt-slide-energy-gas');
-
-  // Solar Toggle
-  const solarBtn = document.getElementById('btn-toggle-solar');
-
-  // Sync initial input positions from loaded state
-  if (state.quizAnswers) {
-    if (state.quizAnswers.commuteDist !== undefined) {
-      commuteDistSlider.value = state.quizAnswers.commuteDist;
-      commuteDistTxt.innerText = `${state.quizAnswers.commuteDist} km`;
+  inputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => runEcoSenseCalculator());
+      el.addEventListener('change', () => runEcoSenseCalculator());
     }
-    if (state.quizAnswers.energyBill !== undefined) {
-      energyBillSlider.value = state.quizAnswers.energyBill;
-      energyBillTxt.innerText = `\u20B9${state.quizAnswers.energyBill}/mo`;
-    }
-    if (state.quizAnswers.energyAc !== undefined) {
-      energyAcSlider.value = state.quizAnswers.energyAc;
-      energyAcTxt.innerText = `${state.quizAnswers.energyAc} hrs/day`;
-    }
-    if (state.quizAnswers.energyGas !== undefined) {
-      energyGasSlider.value = state.quizAnswers.energyGas;
-      energyGasTxt.innerText = `${state.quizAnswers.energyGas} cyl/mo`;
-    }
-    if (state.quizAnswers.solar !== undefined) {
-      solarBtn.innerText = state.quizAnswers.solar ? 'On' : 'Off';
-      if (state.quizAnswers.solar) {
-        solarBtn.className = "px-4 py-2 rounded-xl text-xs font-bold font-heading border border-teal-500/30 bg-teal-500/20 text-teal-300 transition-all select-none shadow-[0_0_10px_rgba(20,184,166,0.2)]";
-      } else {
-        solarBtn.className = "px-4 py-2 rounded-xl text-xs font-bold font-heading border border-white/10 text-slate-400 hover:text-slate-200 transition-all select-none";
-      }
-    }
+  });
+
+  const calcBtn = document.getElementById('calculate-btn');
+  if (calcBtn) {
+    calcBtn.addEventListener('click', () => {
+      runEcoSenseCalculator();
+      calcBtn.innerText = 'Impact Calculated! ✓';
+      calcBtn.className = "w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white font-heading font-bold py-2.5 rounded-xl text-xs transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.25)]";
+      setTimeout(() => {
+        calcBtn.innerText = 'Calculate My Impact';
+        calcBtn.className = "w-full mt-4 bg-teal-500 hover:bg-teal-600 text-white font-heading font-bold py-2.5 rounded-xl text-xs transition-all duration-300 shadow-[0_0_15px_rgba(20,184,166,0.25)]";
+      }, 1500);
+    });
   }
 
-  commuteDistSlider.addEventListener('input', (e) => {
-    state.quizAnswers.commuteDist = parseInt(e.target.value);
-    commuteDistTxt.innerText = `${state.quizAnswers.commuteDist} km`;
-    runQuizCalculator();
-  });
-
-  energyBillSlider.addEventListener('input', (e) => {
-    state.quizAnswers.energyBill = parseInt(e.target.value);
-    energyBillTxt.innerText = `\u20B9${state.quizAnswers.energyBill}/mo`;
-    runQuizCalculator();
-  });
-
-  energyAcSlider.addEventListener('input', (e) => {
-    state.quizAnswers.energyAc = parseInt(e.target.value);
-    energyAcTxt.innerText = `${state.quizAnswers.energyAc} hrs/day`;
-    runQuizCalculator();
-  });
-
-  energyGasSlider.addEventListener('input', (e) => {
-    state.quizAnswers.energyGas = parseFloat(e.target.value);
-    energyGasTxt.innerText = `${state.quizAnswers.energyGas} cyl/mo`;
-    runQuizCalculator();
-  });
-
-  solarBtn.addEventListener('click', () => {
-    state.quizAnswers.solar = !state.quizAnswers.solar;
-    solarBtn.innerText = state.quizAnswers.solar ? 'On' : 'Off';
-    if (state.quizAnswers.solar) {
-      solarBtn.className = "px-4 py-2 rounded-xl text-xs font-bold font-heading border border-teal-500/30 bg-teal-500/20 text-teal-300 transition-all select-none shadow-[0_0_10px_rgba(20,184,166,0.2)]";
-    } else {
-      solarBtn.className = "px-4 py-2 rounded-xl text-xs font-bold font-heading border border-white/10 text-slate-400 hover:text-slate-200 transition-all select-none";
-    }
-    runQuizCalculator();
-  });
-
-  // Travel Mode selections
-  const commuteBtns = document.querySelectorAll('#onboarding-commute-group button');
-  commuteBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const mode = btn.dataset.mode;
-      state.quizAnswers.commuteMode = mode;
-
-      commuteBtns.forEach(b => {
-        b.className = "quiz-btn border border-white/10 hover:border-teal-500/40 bg-white/5 p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-teal-500/5 transition-all text-center group select-none";
-      });
-      btn.className = "quiz-btn border border-teal-500 bg-teal-500/10 p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-teal-500/5 transition-all text-center group select-none shadow-[0_0_10px_rgba(20,184,166,0.15)]";
-      runQuizCalculator();
-    });
-  });
-
-  // Diet selections
-  const dietBtns = document.querySelectorAll('#onboarding-diet-group button');
-  dietBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const diet = btn.dataset.diet;
-      state.quizAnswers.diet = diet;
-
-      dietBtns.forEach(b => {
-        b.className = "quiz-btn border border-white/10 hover:border-violet-500/40 bg-white/5 p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-violet-500/5 transition-all text-center group select-none";
-      });
-      btn.className = "quiz-btn border border-violet-500 bg-violet-500/10 p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-violet-500/5 transition-all text-center group select-none shadow-[0_0_10px_rgba(139,92,246,0.15)]";
-      runQuizCalculator();
-    });
-  });
-
-  // Set initial selections visually
-  const initialCommuteBtn = document.querySelector(`#onboarding-commute-group button[data-mode="${state.quizAnswers.commuteMode}"]`);
-  if (initialCommuteBtn) initialCommuteBtn.click();
-
-  const initialDietBtn = document.querySelector(`#onboarding-diet-group button[data-diet="${state.quizAnswers.diet}"]`);
-  if (initialDietBtn) initialDietBtn.click();
-
-  // Onboarding Submit
-  const submitBtn = document.getElementById('btn-submit-onboarding');
-  submitBtn.addEventListener('click', () => {
-    state.quizDone = true;
-    state.completedActions = []; // Reset checklist upon quiz recalculation
-    saveStateToStorage();
-    renderChecklist();
-    syncDashboardWithState();
-
-    // Switch to Dashboard
-    switchView('dashboard');
-
-    // Auto advice trigger in Spark Chat
-    triggerSparkAdvice('onboarding_finished');
-  });
-}
-
-// Convert sliders + choices to daily carbon & Earth scores
-function runQuizCalculator() {
-  // 1. Commute
-  const commuteFactor = EMISSIONS_FACTORS.commute[state.quizAnswers.commuteMode] || 0;
-  const commuteScore = state.quizAnswers.commuteDist * commuteFactor;
-
-  // 2. Diet
-  const dietScore = EMISSIONS_FACTORS.diet[state.quizAnswers.diet] || 0;
-
-  // 3. Home Utilities
-  // Electricity: Bill (₹) * 0.0033 kg CO2/₹ (approx 0.8kg per kWh, 8 rupees per kWh, 30 days)
-  let electricityScore = state.quizAnswers.energyBill * 0.0033;
-  // AC: Hours * 1.2 kg CO2e (1.5kW * 0.8 kg/kWh)
-  const acScore = state.quizAnswers.energyAc * 1.2;
-  // LPG Cooking gas: Cylinders * 42 kg CO2 / 30 days
-  const gasScore = state.quizAnswers.energyGas * 1.4;
-
-  let homeEnergyTotal = electricityScore + acScore + gasScore;
-  if (state.quizAnswers.solar) {
-    homeEnergyTotal *= 0.25; // 75% reduction
+  // Simulator Sliders
+  const drivingSlider = document.getElementById('reduce-driving-slider');
+  if (drivingSlider) {
+    drivingSlider.addEventListener('input', () => updateSimulatorUI());
   }
 
-  // Baseline total daily footprint score
-  const totalBase = commuteScore + dietScore + homeEnergyTotal;
-  state.dailyBaseScore = parseFloat(totalBase.toFixed(1));
-
-  // Real-time recalculation of Earth score
-  // 1 Earth represents roughly 5.0 kg daily footprint limit
-  const baseEarths = 0.5 + (state.dailyBaseScore / 5.0) * 1.0;
-  state.earthsNeeded = parseFloat(Math.max(0.8, Math.min(8.0, baseEarths)).toFixed(1));
-
-  // Update onboarding result panels
-  document.getElementById('onboarding-txt-carbon').innerText = state.dailyBaseScore.toFixed(1);
-  document.getElementById('onboarding-txt-earths').innerText = state.earthsNeeded.toFixed(1);
-}
-
-// ================= DAILY HABITS CHECKLIST LOGIC =================
-
-function setupChecklist() {
-  renderChecklist();
-}
-
-function renderChecklist() {
-  const container = document.getElementById('habits-checklist-container');
-  if (!container) return;
-  container.innerHTML = '';
-
-  CHECKLIST_ACTIONS.forEach(action => {
-    const isCompleted = state.completedActions.includes(action.id);
-    const card = document.createElement('button');
-
-    card.type = 'button';
-    // Style toggle
-    if (isCompleted) {
-      card.className = "flex items-center justify-between p-4 rounded-xl border border-teal-500/35 bg-teal-500/10 text-left transition-all duration-300 select-none shadow-[0_0_10px_rgba(20,184,166,0.1)]";
-    } else {
-      card.className = "flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/15 text-left transition-all duration-300 select-none";
-    }
-
-    card.innerHTML = `
-      <div class="flex items-center gap-4">
-        <!-- Styled Custom Checkbox -->
-        <div class="w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all ${isCompleted ? 'bg-teal-500 border-teal-500 text-white' : 'border-white/20 bg-slate-900/40'}">
-          ${isCompleted ? '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
-        </div>
-        <div class="flex flex-col gap-0.5">
-          <span class="text-xs font-bold text-white font-heading ${isCompleted ? 'line-through text-slate-400' : ''}">${action.title}</span>
-          <span class="text-[10px] text-slate-400">${action.desc}</span>
-        </div>
-      </div>
-      <span class="text-xs font-bold font-heading px-2 py-0.5 rounded ${isCompleted ? 'bg-teal-500/20 text-teal-400' : 'bg-white/5 text-slate-400'}">${action.impact} kg</span>
-    `;
-
-    card.addEventListener('click', () => {
-      toggleChecklistItem(action.id);
-    });
-
-    container.appendChild(card);
-  });
-}
-
-function toggleChecklistItem(id) {
-  const index = state.completedActions.indexOf(id);
-  if (index > -1) {
-    state.completedActions.splice(index, 1);
-  } else {
-    state.completedActions.push(id);
+  const energySlider = document.getElementById('reduce-energy-slider');
+  if (energySlider) {
+    energySlider.addEventListener('input', () => updateSimulatorUI());
   }
+
+  // Planner Goal Slider
+  const goalSlider = document.getElementById('reduction-goal');
+  if (goalSlider) {
+    goalSlider.addEventListener('input', () => updateActionPlannerUI());
+  }
+
+  // Generate Plan button
+  const generateBtn = document.getElementById('generate-plan-btn');
+  if (generateBtn) {
+    generateBtn.addEventListener('click', () => generateActionPlan());
+  }
+}
+
+// Convert inputs to carbon footprint and sustainability score
+function runEcoSenseCalculator() {
+  const vehicleType = document.getElementById('vehicle-type').value;
+  const dailyDistance = parseFloat(document.getElementById('daily-distance').value) || 0;
+  const daysPerWeek = parseFloat(document.getElementById('days-per-week').value) || 0;
+  const monthlyElectricity = parseFloat(document.getElementById('monthly-electricity').value) || 0;
+  const dietPreference = document.getElementById('diet-preference').value;
+  const recyclingHabits = document.getElementById('recycling-habits').value;
+
+  // Save inputs to state
+  state.vehicleType = vehicleType;
+  state.dailyDistance = dailyDistance;
+  state.daysPerWeek = daysPerWeek;
+  state.monthlyElectricity = monthlyElectricity;
+  state.dietPreference = dietPreference;
+  state.recyclingHabits = recyclingHabits;
+
+  // Transport calculation
+  // Factors: Petrol/Diesel Car = 0.20, Electric Car = 0.05, Two-Wheeler = 0.10, Public Transit = 0.03, None = 0.00
+  let transportFactor = 0.0;
+  if (vehicleType === 'Car (Petrol/Diesel)') transportFactor = 0.20;
+  else if (vehicleType === 'Car (Electric)') transportFactor = 0.05;
+  else if (vehicleType === 'Two-Wheeler') transportFactor = 0.10;
+  else if (vehicleType === 'Public Transit') transportFactor = 0.03;
+
+  const transportEmissions = dailyDistance * daysPerWeek * 4.33 * transportFactor;
+
+  // Energy calculation
+  const energyEmissions = monthlyElectricity * 0.82;
+
+  // Lifestyle calculation
+  // Diet: Mixed = 90, Vegetarian = 50, Vegan = 30
+  // Recycling: Never = 30, Sometimes = 10, Always = 0
+  let dietFactor = 90;
+  if (dietPreference === 'Vegetarian') dietFactor = 50;
+  else if (dietPreference === 'Vegan') dietFactor = 30;
+
+  let recyclingFactor = 10;
+  if (recyclingHabits === 'Never') recyclingFactor = 30;
+  else if (recyclingHabits === 'Always') recyclingFactor = 0;
+
+  const lifestyleEmissions = dietFactor + recyclingFactor;
+
+  // Total monthly emissions
+  const totalEmissions = transportEmissions + energyEmissions + lifestyleEmissions;
+
+  // Sustainability score
+  const score = Math.max(10, Math.min(100, 100 - Math.round(totalEmissions / 8.0)));
+
+  // Save results to state
+  state.monthlyEmissions = totalEmissions;
+  state.sustainabilityScore = score;
+  state.transportShare = transportEmissions;
+  state.energyShare = energyEmissions;
+  state.lifestyleShare = lifestyleEmissions;
+
+  // Update legacy daily scores for compatibility
+  state.dailyScore = totalEmissions / 30.0;
+  state.dailyBaseScore = totalEmissions / 30.0;
+  state.earthsNeeded = parseFloat((0.5 + (state.dailyScore / 5.0) * 1.0).toFixed(1));
+
+  // Sync quizAnswers structure for AI coach prompt context compatibility
+  state.quizAnswers = {
+    commuteDist: dailyDistance,
+    commuteMode: vehicleType === 'Car (Petrol/Diesel)' ? 'drive-alone' : (vehicleType === 'Two-Wheeler' ? 'twowheeler' : (vehicleType === 'Public Transit' ? 'transit' : 'active')),
+    diet: dietPreference.toLowerCase(),
+    energyBill: Math.round(monthlyElectricity * 8), // rough bill estimate
+    energyAc: 0,
+    energyGas: 0,
+    solar: vehicleType === 'Car (Electric)'
+  };
 
   saveStateToStorage();
-  renderChecklist();
-  syncDashboardWithState();
+
+  // Update UI Elements
+  updateCalculatorUI();
 }
 
-// Global state synchronizer updates Dashboard metrics, Earth scores and triggers Globe visual changes
-function syncDashboardWithState() {
-  let reductionSum = 0;
-  state.completedActions.forEach(actionId => {
-    const action = CHECKLIST_ACTIONS.find(a => a.id === actionId);
-    if (action) {
-      reductionSum += Math.abs(action.impact);
+function updateCalculatorUI() {
+  // 1. Carbon Footprint display
+  const footprintEl = document.getElementById('carbon-footprint');
+  if (footprintEl) {
+    footprintEl.innerText = Math.round(state.monthlyEmissions);
+  }
+
+  // Progress share text
+  const txtTransportShare = document.getElementById('txt-transport-share');
+  if (txtTransportShare) txtTransportShare.innerText = `${Math.round(state.transportShare)} kg`;
+  
+  const txtEnergyShare = document.getElementById('txt-energy-share');
+  if (txtEnergyShare) txtEnergyShare.innerText = `${Math.round(state.energyShare)} kg`;
+
+  const txtLifestyleShare = document.getElementById('txt-lifestyle-share');
+  if (txtLifestyleShare) txtLifestyleShare.innerText = `${Math.round(state.lifestyleShare)} kg`;
+
+  // Progress bars widths (normalize relative to total or fixed max)
+  const total = Math.max(1, state.transportShare + state.energyShare + state.lifestyleShare);
+  
+  const barTransport = document.getElementById('bar-transport');
+  if (barTransport) barTransport.style.width = `${(state.transportShare / total) * 100}%`;
+
+  const barEnergy = document.getElementById('bar-energy');
+  if (barEnergy) barEnergy.style.width = `${(state.energyShare / total) * 100}%`;
+
+  const barLifestyle = document.getElementById('bar-lifestyle');
+  if (barLifestyle) barLifestyle.style.width = `${(state.lifestyleShare / total) * 100}%`;
+
+  // 2. Sustainability Score
+  const scoreEl = document.getElementById('sustainability-score');
+  if (scoreEl) scoreEl.innerText = state.sustainabilityScore;
+
+  // Radial stroke update
+  const circleEl = document.getElementById('score-circle-stroke');
+  if (circleEl) {
+    const offset = 264 - (state.sustainabilityScore / 100) * 264;
+    circleEl.style.strokeDashoffset = offset;
+    
+    // Color coding matching score
+    if (state.sustainabilityScore >= 80) {
+      circleEl.setAttribute('stroke', '#10b981'); // Green
+    } else if (state.sustainabilityScore >= 50) {
+      circleEl.setAttribute('stroke', '#eab308'); // Yellow
+    } else {
+      circleEl.setAttribute('stroke', '#f43f5e'); // Red
     }
+  }
+
+  const statusEl = document.getElementById('sustainability-status');
+  if (statusEl) {
+    if (state.sustainabilityScore >= 80) {
+      statusEl.innerText = '🌏 Optimal';
+      statusEl.className = 'text-base font-extrabold text-emerald-400 font-heading flex items-center gap-1';
+    } else if (state.sustainabilityScore >= 50) {
+      statusEl.innerText = '🌏 Improving';
+      statusEl.className = 'text-base font-extrabold text-yellow-400 font-heading flex items-center gap-1';
+    } else {
+      statusEl.innerText = '🌏 Deficit';
+      statusEl.className = 'text-base font-extrabold text-rose-500 font-heading flex items-center gap-1';
+    }
+  }
+
+  // 3. Update AI recommendations & Simulator & Action planner inputs/outputs
+  updateAIRecommendations();
+  updateSimulatorUI();
+  updateActionPlannerUI();
+}
+
+function updateAIRecommendations() {
+  const container = document.getElementById('recommendations-container');
+  if (!container) return;
+
+  container.innerHTML = '';
+  let recommendations = [];
+
+  if (state.recyclingHabits === 'Sometimes' || state.recyclingHabits === 'Never') {
+    recommendations.push({
+      title: 'Improve Recycling Habits',
+      desc: 'Set up separate bins for plastic, paper, and metal to reduce lifestyle landfill waste.',
+      offset: 20
+    });
+  }
+
+  if (state.dietPreference === 'Mixed') {
+    recommendations.push({
+      title: 'Adopt a Plant-Based Diet',
+      desc: 'Transition meals to plant-based items. Vegetarian diet halves lifestyle food emissions.',
+      offset: 40
+    });
+  }
+
+  if (state.vehicleType === 'Car (Petrol/Diesel)') {
+    const weeklyTravel = state.dailyDistance * state.daysPerWeek;
+    if (weeklyTravel > 20) {
+      recommendations.push({
+        title: 'Switch Commute to Transit/Bike',
+        desc: 'Utilize public transit or a bicycle for daily commuting to bypass fuel combustion.',
+        offset: 50
+      });
+    }
+    recommendations.push({
+      title: 'Switch to Electric Vehicle',
+      desc: 'An electric vehicle reduces transport baseline carbon output by up to 75%.',
+      offset: 45
+    });
+  }
+
+  if (state.monthlyElectricity > 100) {
+    recommendations.push({
+      title: 'Optimize AC and Cooling',
+      desc: 'Set AC to 26°C, unplug standby electronics, and use natural ventilation when possible.',
+      offset: 30
+    });
+  }
+
+  // If no recommendations, add a fallback
+  if (recommendations.length === 0) {
+    recommendations.push({
+      title: 'Maintain Eco-Friendly Habits',
+      desc: 'You have chosen highly sustainable lifestyle configurations. Keep inspiring others!',
+      offset: 0
+    });
+  }
+
+  let totalOffset = 0;
+
+  recommendations.forEach(rec => {
+    totalOffset += rec.offset;
+    const card = document.createElement('div');
+    card.className = "p-3.5 rounded-xl border border-white/5 bg-slate-900/40 flex justify-between items-center gap-3";
+    card.innerHTML = `
+      <div class="flex flex-col gap-0.5">
+        <span class="text-xs font-bold text-white font-heading">${rec.title}</span>
+        <span class="text-[10px] text-slate-400 leading-relaxed">${rec.desc}</span>
+      </div>
+      <span class="text-xs font-heading font-extrabold px-2 py-1 rounded bg-teal-500/15 text-teal-400 whitespace-nowrap">
+        ↓ ${rec.offset} kg
+      </span>
+    `;
+    container.appendChild(card);
   });
 
-  const finalDailyScore = Math.max(0.0, state.dailyBaseScore - reductionSum);
-  state.dailyScore = parseFloat(finalDailyScore.toFixed(1));
+  const totalImprovementEl = document.getElementById('txt-total-improvement');
+  if (totalImprovementEl) {
+    totalImprovementEl.innerText = totalOffset;
+  }
+}
 
-  // Recalculate Earth Score based on active carbon metrics
-  const activeEarths = 0.5 + (state.dailyScore / 5.0) * 1.0;
-  state.earthsNeeded = parseFloat(Math.max(0.8, Math.min(8.0, activeEarths)).toFixed(1));
+function updateSimulatorUI() {
+  const drivingSlider = document.getElementById('reduce-driving-slider');
+  const energySlider = document.getElementById('reduce-energy-slider');
 
-  // Update DOM metrics
-  document.getElementById('txt-carbon-score').innerText = state.dailyScore.toFixed(1);
-  document.getElementById('txt-carbon-baseline').innerText = state.dailyBaseScore.toFixed(1);
-  document.getElementById('txt-earth-score').innerText = state.earthsNeeded.toFixed(1);
+  if (!drivingSlider || !energySlider) return;
 
-  // Carbon metrics badge level
-  const carbonBadge = document.getElementById('lbl-carbon-badge');
-  if (state.dailyScore === 0) {
-    carbonBadge.innerText = 'Carbon Neutral \uD83C\uDF1F';
-    carbonBadge.className = 'mt-4 text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 w-fit shadow-[0_0_10px_rgba(16,185,129,0.2)]';
-  } else if (state.dailyScore < 7) {
-    carbonBadge.innerText = 'Eco-Warrior \uD83C\uDF43';
-    carbonBadge.className = 'mt-4 text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 w-fit';
-  } else if (state.dailyScore < 15) {
-    carbonBadge.innerText = 'Carbon Conscious \u26A1';
-    carbonBadge.className = 'mt-4 text-[11px] font-bold px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 w-fit';
-  } else {
-    carbonBadge.innerText = 'Carbon Heavyweight \u26A0\uFE0F';
-    carbonBadge.className = 'mt-4 text-[11px] font-bold px-3 py-1 rounded-full bg-rose-500/20 text-rose-500 border border-rose-500/30 w-fit shadow-[0_0_10px_rgba(244,63,94,0.15)]';
+  const maxDriving = Math.round(state.transportShare);
+  const maxEnergy = Math.round(state.energyShare);
+
+  drivingSlider.max = maxDriving;
+  energySlider.max = maxEnergy;
+
+  // Clamp current value to new max if it exceeds
+  if (parseInt(drivingSlider.value) > maxDriving) drivingSlider.value = maxDriving;
+  if (parseInt(energySlider.value) > maxEnergy) energySlider.value = maxEnergy;
+
+  state.drivingReduction = parseInt(drivingSlider.value) || 0;
+  state.energyReduction = parseInt(energySlider.value) || 0;
+
+  // Update text values
+  document.getElementById('sim-driving-val').innerText = `-${state.drivingReduction} kg`;
+  document.getElementById('sim-energy-val').innerText = `-${state.energyReduction} kg`;
+
+  const totalEmissions = state.monthlyEmissions;
+  const afterEmissions = Math.max(0, totalEmissions - state.drivingReduction - state.energyReduction);
+  const reductionPercent = totalEmissions > 0 ? ((totalEmissions - afterEmissions) / totalEmissions) * 100 : 0;
+
+  document.getElementById('sim-current').innerText = `${Math.round(totalEmissions)} kg`;
+  document.getElementById('sim-after').innerText = `${Math.round(afterEmissions)} kg`;
+  document.getElementById('sim-reduction').innerText = `${reductionPercent.toFixed(1)}%`;
+}
+
+function updateActionPlannerUI() {
+  const goalSlider = document.getElementById('reduction-goal');
+  const goalVal = document.getElementById('reduction-goal-val');
+  if (goalSlider && goalVal) {
+    goalVal.innerText = `${goalSlider.value}% Goal`;
+    state.reductionGoal = parseInt(goalSlider.value);
+  }
+}
+
+function generateActionPlan() {
+  const container = document.getElementById('plan-output-container');
+  if (!container) return;
+
+  container.innerHTML = '';
+  const goal = state.reductionGoal;
+  
+  let plans = [
+    { day: 'Days 1-5', title: 'Set cooling units to 26°C', desc: 'Saves around 10% of home energy emissions immediately.' },
+    { day: 'Days 6-10', title: 'Introduce Meatless meals', desc: 'Try replacing dairy/meat lunches with vegetable proteins.' }
+  ];
+
+  if (goal >= 20) {
+    plans.push({ day: 'Days 11-15', title: 'Carpool or Shared Transit', desc: 'Shift travel trips to shared vans or local metro options.' });
+  }
+  if (goal >= 30) {
+    plans.push({ day: 'Days 16-20', title: 'Unplug Standby Devices', desc: 'Prevent vampire power draw on appliances when inactive.' });
+  }
+  if (goal >= 40) {
+    plans.push({ day: 'Days 21-25', title: 'Air Dry Clothes', desc: 'Ditch heavy washer heating coils for natural balcony line drying.' });
+  }
+  if (goal >= 50) {
+    plans.push({ day: 'Days 26-30', title: 'Implement Zero-Waste Sourcing', desc: 'Use canvas shopping bags to fully refuse vendor plastic bags.' });
   }
 
-  // Earths needed status badge
-  const earthBadge = document.getElementById('lbl-earth-status');
-  if (state.earthsNeeded <= 1.2) {
-    earthBadge.innerText = 'Sustainable Budget';
-    earthBadge.className = 'mt-4 text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 w-fit';
-  } else if (state.earthsNeeded <= 2.5) {
-    earthBadge.innerText = 'Deficit Danger';
-    earthBadge.className = 'mt-4 text-[11px] font-bold px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 w-fit';
-  } else {
-    earthBadge.innerText = 'Severe Ecological Deficit';
-    earthBadge.className = 'mt-4 text-[11px] font-bold px-3 py-1 rounded-full bg-rose-500/20 text-rose-500 border border-rose-500/30 w-fit shadow-[0_0_10px_rgba(244,63,94,0.15)]';
-  }
-
-  // Update Callout Tip
-  const calloutText = document.getElementById('dashboard-coach-text');
-  if (state.completedActions.length === CHECKLIST_ACTIONS.length) {
-    calloutText.innerText = "Wow! You have checked all daily carbon metrics. Share your checklist structure with a coworker!";
-  } else if (state.completedActions.length > 0) {
-    calloutText.innerText = `Excellent. Doing ${state.completedActions.length} habits today saved ${reductionSum.toFixed(1)} kg. View the 3D globe to see the atmosphere clean up.`;
-  } else {
-    calloutText.innerText = "Complete checklist items like 'Took green transit' or 'Unplugged vampire loads' to lower your metrics instantly!";
-  }
-
-  // Update comparisons dynamically
-  updateComparisonTab();
+  plans.forEach(plan => {
+    const item = document.createElement('div');
+    item.className = "flex items-start gap-2.5 p-2.5 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-300";
+    item.innerHTML = `
+      <input type="checkbox" class="mt-0.5 accent-teal-500 rounded border-white/20 bg-slate-900">
+      <div class="flex flex-col gap-0.5">
+        <span class="font-bold text-white font-heading">${plan.day}: ${plan.title}</span>
+        <span class="text-[10px] text-slate-400 leading-relaxed">${plan.desc}</span>
+      </div>
+    `;
+    container.appendChild(item);
+  });
 }
 
 // ================= THREE.JS GLOBE WORKSPACE =================
