@@ -20,6 +20,10 @@
 4. **Spark: Gemini AI Eco-Coach**
    * A tailored, context-aware chatbot powered by **Google Gemini 1.5 Flash**.
    * Offers highly personalized, encouraging advice by automatically reading your active carbon balance, completed checklist habits, and baseline calculations.
+5. **Global Carbon Comparisons**
+   * Projects your active daily carbon footprint to annualized metric tons and compares it against G20 per-capita averages (India, China, Germany, Iceland, USA, Australia, and the World limit).
+   * Dynamically sorts the chart ascending, highlighting exactly where you rank in global standards.
+   * Features detailed interactive spotlights detailing country-specific energy policies, sustainability facts, and direct emission ratios.
 
 ---
 
