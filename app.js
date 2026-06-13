@@ -1138,7 +1138,7 @@ function getSimulatedOfflineResponse(prompt, context) {
     resp = `Under your current lifestyle, your daily score sits at **${state.dailyScore.toFixed(1)} kg CO\u2082e**. Completing habits like eating vegetarian meals and drying clothes naturally reduces your footprint in real-time. Keep it up!`;
   }
   
-  return `[Simulated Spark Advice - Save Gemini API key in settings for live interactions]\n\n${resp}`;
+  return resp;
 }
 
 // ================= GLOBAL CARBON COMPARISONS TAB DATA & LOGIC =================
