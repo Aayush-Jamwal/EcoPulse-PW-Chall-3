@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EcoPulse 2.0 - Active Carbon & Planetary Metrics</title>
   <meta name="description" content="Ecological footprint calculator, active daily habits tracker, 3D interactive globe, and context-aware Gemini AI coaching.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' blob: data: https://cdn.jsdelivr.net https://unpkg.com; connect-src 'self' https://generativelanguage.googleapis.com;">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   
   <!-- CSS Link & Tailwind CSS v3 CDN -->
@@ -35,7 +36,14 @@
   <!-- Three.js CDN for 3D Globe -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
-<body class="bg-midnight text-slate-100 min-h-full font-body flex relative overflow-hidden">
+<body class="bg-midnight text-slate-100 min-h-full font-body relative overflow-hidden">
+
+  <!-- Skip Navigation: allows keyboard users to jump directly to main content -->
+  <a href="#main-content"
+     class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-teal-500 focus:text-white focus:rounded-lg focus:font-bold focus:text-sm focus:shadow-lg"
+     aria-label="Skip to main content">
+    Skip to main content
+  </a>
 
   <!-- Ambient Glowing Background Blobs -->
   <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
@@ -61,7 +69,7 @@
     </header>
 
     <!-- Sidebar Navigation -->
-    <aside class="hidden md:flex w-80 h-full flex flex-col justify-between p-6 glass-panel border-r border-white/5 relative z-20 shrink-0">
+    <aside class="hidden md:flex w-80 h-full flex-col justify-between p-6 glass-panel border-r border-white/5 relative z-20 shrink-0">
       <div class="flex flex-col gap-8">
         <!-- Brand / Logo -->
         <div class="flex items-center gap-3">
@@ -78,9 +86,14 @@
         </div>
 
         <!-- Navigation Links -->
-        <nav class="flex flex-col gap-2">
-          <button id="nav-dashboard" class="flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-teal-400 bg-teal-500/10 border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.15)]">
-            <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <nav class="flex flex-col gap-2" role="tablist" aria-label="Main navigation">
+          <button id="nav-dashboard"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="tab-dashboard-view"
+                  aria-label="Dashboard — Carbon footprint overview"
+                  class="flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-teal-400 bg-teal-500/10 border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.15)]">
+            <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <rect x="3" y="3" width="7" height="9"></rect>
               <rect x="14" y="3" width="7" height="5"></rect>
               <rect x="14" y="12" width="7" height="9"></rect>
@@ -89,8 +102,14 @@
             Dashboard
           </button>
 
-          <button id="nav-globe" class="flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5">
-            <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <button id="nav-globe"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="tab-globe-view"
+                  aria-label="3D Eco-Globe — Interactive Earth carbon map"
+                  tabindex="-1"
+                  class="flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5">
+            <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <circle cx="12" cy="12" r="10"></circle>
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
               <path d="M2 12h20"></path>
@@ -98,15 +117,27 @@
             3D Eco-Globe
           </button>
           
-          <button id="nav-coach" class="flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5">
-            <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <button id="nav-coach"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="tab-coach-view"
+                  aria-label="Eco-Coach AI — Gemini-powered carbon advisor"
+                  tabindex="-1"
+                  class="flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5">
+            <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
             Eco-Coach AI
           </button>
 
-          <button id="nav-compare" class="flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5">
-            <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <button id="nav-compare"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="tab-compare-view"
+                  aria-label="Global Comparison — Compare your footprint with countries worldwide"
+                  tabindex="-1"
+                  class="flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5">
+            <svg class="w-5 h-5 text-current" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <line x1="18" y1="20" x2="18" y2="10"></line>
               <line x1="12" y1="20" x2="12" y2="4"></line>
               <line x1="6" y1="20" x2="6" y2="14"></line>
@@ -117,18 +148,22 @@
       </div>
 
       <!-- Sidebar Footer Settings -->
-      <div class="flex flex-col gap-4 border-t border-white/5 pt-4">
+      <footer class="flex flex-col gap-4 border-t border-white/5 pt-4">
         <div class="text-[11px] text-slate-500 text-center">
           EcoPulse 2.0 • GenAI Hackathon
         </div>
-      </div>
+      </footer>
     </aside>
 
     <!-- Main Workspace Panel -->
-    <main class="flex-grow lg:h-full overflow-y-auto relative z-10 px-3 py-4 md:px-8 md:py-6 pb-20 md:pb-6">
+    <main id="main-content" class="flex-grow lg:h-full overflow-y-auto relative z-10 px-3 py-4 md:px-8 md:py-6 pb-20 md:pb-6">
 
       <!-- ================= TAB 1: DASHBOARD ================= -->
-      <div id="tab-dashboard-view" class="tab-pane flex flex-col gap-4 md:gap-6 lg:h-full">
+      <section id="tab-dashboard-view"
+               role="tabpanel"
+               aria-labelledby="nav-dashboard"
+               tabindex="0"
+               class="tab-pane flex flex-col gap-4 md:gap-6 lg:h-full">
         <!-- Top Metrics Header -->
         <header class="flex justify-between items-center shrink-0">
           <div>
@@ -227,7 +262,11 @@
             <div class="glass-panel border-glow-teal p-5 rounded-2xl flex flex-col gap-3 relative">
               <span class="text-xs font-bold tracking-wider uppercase text-teal-400 font-heading">Carbon Footprint</span>
               <div class="my-2 flex flex-col items-center justify-center py-2">
-                <span id="carbon-footprint" class="text-5xl font-heading font-extrabold text-white tracking-tight">--</span>
+                <span id="carbon-footprint"
+                      class="text-5xl font-heading font-extrabold text-white tracking-tight"
+                      role="status"
+                      aria-live="polite"
+                      aria-label="Current monthly carbon footprint">--</span>
                 <span class="text-xs text-slate-400 mt-1 font-body">kg CO₂/mo</span>
               </div>
               <!-- Progress Bars -->
@@ -237,8 +276,16 @@
                     <span>Transport</span>
                     <span id="txt-transport-share">-- kg</span>
                   </div>
-                  <div class="w-full bg-slate-950/40 h-1.5 rounded-full overflow-hidden border border-white/5">
-                    <div id="bar-transport" class="bg-teal-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                    <div class="w-full bg-slate-950/40 h-1.5 rounded-full overflow-hidden border border-white/5" role="group" aria-label="Transport emission share">
+                      <div id="bar-transport"
+                           class="bg-teal-500 h-full rounded-full transition-all duration-500"
+                           style="width: 0%"
+                           role="progressbar"
+                           aria-valuenow="0"
+                           aria-valuemin="0"
+                           aria-valuemax="100"
+                           aria-label="Transport carbon share percentage">
+                      </div>
                   </div>
                 </div>
                 <div class="flex flex-col gap-1">
@@ -246,8 +293,16 @@
                     <span>Energy</span>
                     <span id="txt-energy-share">-- kg</span>
                   </div>
-                  <div class="w-full bg-slate-950/40 h-1.5 rounded-full overflow-hidden border border-white/5">
-                    <div id="bar-energy" class="bg-amber-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                    <div class="w-full bg-slate-950/40 h-1.5 rounded-full overflow-hidden border border-white/5" role="group" aria-label="Energy emission share">
+                      <div id="bar-energy"
+                           class="bg-amber-400 h-full rounded-full transition-all duration-500"
+                           style="width: 0%"
+                           role="progressbar"
+                           aria-valuenow="0"
+                           aria-valuemin="0"
+                           aria-valuemax="100"
+                           aria-label="Energy carbon share percentage">
+                      </div>
                   </div>
                 </div>
                 <div class="flex flex-col gap-1">
@@ -255,8 +310,16 @@
                     <span>Lifestyle</span>
                     <span id="txt-lifestyle-share">-- kg</span>
                   </div>
-                  <div class="w-full bg-slate-950/40 h-1.5 rounded-full overflow-hidden border border-white/5">
-                    <div id="bar-lifestyle" class="bg-violet-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                    <div class="w-full bg-slate-950/40 h-1.5 rounded-full overflow-hidden border border-white/5" role="group" aria-label="Lifestyle emission share">
+                      <div id="bar-lifestyle"
+                           class="bg-violet-400 h-full rounded-full transition-all duration-500"
+                           style="width: 0%"
+                           role="progressbar"
+                           aria-valuenow="0"
+                           aria-valuemin="0"
+                           aria-valuemax="100"
+                           aria-label="Lifestyle carbon share percentage">
+                      </div>
                   </div>
                 </div>
               </div>
@@ -265,7 +328,11 @@
             <!-- Block 2: EcoSense AI Assistant -->
             <div class="glass-panel border-glow-ice p-4 md:p-5 rounded-2xl flex flex-col gap-3">
               <span class="text-xs font-bold tracking-wider uppercase text-sky-400 font-heading shrink-0">EcoSense AI Assistant</span>
-              <div id="recommendations-container" class="flex flex-col gap-3 overflow-y-auto max-h-52 lg:max-h-64 pr-1">
+              <div id="recommendations-container"
+                   class="flex flex-col gap-3 overflow-y-auto max-h-52 lg:max-h-64 pr-1"
+                   aria-live="polite"
+                   aria-label="AI-generated carbon reduction recommendations"
+                   aria-relevant="additions text">
                 <!-- Dynamically rendered recommendation items -->
               </div>
               <div class="border-t border-white/5 pt-3 shrink-0">
@@ -281,15 +348,22 @@
               <p class="text-[11px] text-slate-400 leading-normal">Set a reduction goal to get a personalized 30-day action plan.</p>
               
               <div class="flex items-center gap-4 mt-1">
-                <input type="range" id="reduction-goal" name="reductionGoal" min="10" max="50" step="10" value="20" class="flex-grow">
+                <label for="reduction-goal" class="sr-only">Reduction goal percentage</label>
+                <input type="range" id="reduction-goal" name="reductionGoal" min="10" max="50" step="10" value="20" class="flex-grow"
+                       aria-label="Set reduction goal: 10% to 50%"
+                       aria-describedby="reduction-goal-val">
                 <span id="reduction-goal-val" class="text-xs font-bold text-teal-400 w-16 text-right font-heading">20% Goal</span>
               </div>
               <button type="button" id="generate-plan-btn" class="w-full mt-2 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-heading font-bold py-3 rounded-xl text-sm transition-all duration-300 min-h-[44px]">
                 Generate Plan
               </button>
-              <div id="plan-output-container" class="max-h-48 overflow-y-auto mt-1 flex flex-col gap-2 pr-1 text-slate-300">
+              <ol id="plan-output-container"
+                   class="max-h-48 overflow-y-auto mt-1 flex flex-col gap-2 pr-1 text-slate-300"
+                   aria-live="polite"
+                   aria-label="Generated 30-day carbon action plan"
+                   aria-relevant="additions">
                 <!-- Action items -->
-              </div>
+              </ol>
             </div>
           </div>
 
@@ -307,7 +381,11 @@
                     <circle id="score-circle-stroke" cx="50" cy="50" r="42" stroke="#eab308" stroke-width="8" fill="transparent" stroke-dasharray="264" stroke-dashoffset="264" class="transition-all duration-700"></circle>
                   </svg>
                   <div class="absolute flex flex-col items-center justify-center">
-                    <span id="sustainability-score" class="text-2xl font-heading font-extrabold text-white">--</span>
+                    <span id="sustainability-score"
+                         class="text-2xl font-heading font-extrabold text-white"
+                         role="status"
+                         aria-live="polite"
+                         aria-label="Sustainability score out of 100">--</span>
                     <span class="text-[9px] font-bold text-slate-500">/100</span>
                   </div>
                 </div>
@@ -329,19 +407,23 @@
                 <div class="flex flex-col gap-4 mt-4">
                   <!-- Driving slider -->
                   <div class="flex flex-col gap-1.5">
-                    <div class="flex justify-between text-xs">
-                      <span class="text-slate-300 font-medium">Reduce Driving (- kg CO₂)</span>
-                      <span id="sim-driving-val" class="font-bold text-teal-400">-0 kg</span>
-                    </div>
-                    <input type="range" id="reduce-driving-slider" min="0" max="100" value="0" class="w-full">
+                     <label for="reduce-driving-slider" class="flex justify-between text-xs">
+                       <span class="text-slate-300 font-medium">Reduce Driving (- kg CO₂)</span>
+                       <span id="sim-driving-val" class="font-bold text-teal-400" aria-live="polite">-0 kg</span>
+                     </label>
+                     <input type="range" id="reduce-driving-slider" min="0" max="100" value="0" class="w-full"
+                            aria-label="Driving reduction slider"
+                            aria-describedby="sim-driving-val">
                   </div>
                   <!-- Energy slider -->
                   <div class="flex flex-col gap-1.5">
-                    <div class="flex justify-between text-xs">
-                      <span class="text-slate-300 font-medium">Reduce Energy (- kg CO₂)</span>
-                      <span id="sim-energy-val" class="font-bold text-teal-400">-0 kg</span>
-                    </div>
-                    <input type="range" id="reduce-energy-slider" min="0" max="100" value="0" class="w-full">
+                     <label for="reduce-energy-slider" class="flex justify-between text-xs">
+                       <span class="text-slate-300 font-medium">Reduce Energy (- kg CO₂)</span>
+                       <span id="sim-energy-val" class="font-bold text-teal-400" aria-live="polite">-0 kg</span>
+                     </label>
+                     <input type="range" id="reduce-energy-slider" min="0" max="100" value="0" class="w-full"
+                            aria-label="Energy reduction slider"
+                            aria-describedby="sim-energy-val">
                   </div>
                 </div>
               </div>
@@ -365,10 +447,14 @@
           </div>
 
         </div>
-      </div>
+      </section>
 
       <!-- ================= TAB 2: ECO-COACH ================= -->
-      <div id="tab-coach-view" class="tab-pane hidden flex flex-col gap-4 lg:h-full">
+      <section id="tab-coach-view"
+               role="tabpanel"
+               aria-labelledby="nav-coach"
+               tabindex="0"
+               class="tab-pane hidden flex flex-col gap-4 lg:h-full">
         <header class="flex justify-between items-center shrink-0">
           <div>
             <h1 class="text-xl md:text-3xl font-heading font-extrabold text-white tracking-tight">Eco-Coach AI Workspace</h1>
@@ -376,7 +462,7 @@
           </div>
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
-            <span class="text-xs font-heading font-semibold text-teal-400 uppercase tracking-wider">Gemini 3.5 Engine Ready</span>
+            <span class="text-xs font-heading font-semibold text-teal-400 uppercase tracking-wider">Gemini 1.5 Flash Engine Ready</span>
           </div>
         </header>
 
@@ -400,15 +486,23 @@
               </div>
             </div>
             
-            <button id="btn-clear-chat" class="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all" title="Reset Conversation">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <button id="btn-clear-chat"
+                    class="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all"
+                    title="Reset Conversation"
+                    aria-label="Clear all messages and reset conversation">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
               </svg>
             </button>
           </div>
 
           <!-- Message History Logs -->
-          <div id="chat-messages-container" class="flex-grow p-6 overflow-y-auto flex flex-col gap-4 min-h-0 bg-slate-950/20">
+          <div id="chat-messages-container"
+               class="flex-grow p-6 overflow-y-auto flex flex-col gap-4 min-h-0 bg-slate-950/20"
+               role="log"
+               aria-live="polite"
+               aria-label="Eco-Coach Spark conversation history"
+               aria-relevant="additions">
             <!-- Simulated greeting injected dynamically -->
           </div>
 
@@ -427,7 +521,14 @@
 
           <!-- Input Controls -->
           <form id="chat-input-form" class="p-4 border-t border-white/5 flex gap-3 bg-slate-900/60 shrink-0">
-            <input type="text" id="chat-user-message-input" autocomplete="off" class="flex-grow bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-violet-500/50 text-slate-100 transition-all placeholder:text-slate-500" placeholder="Type a message, ask about global grid data, or request active footprint reduction tips...">
+            <label for="chat-user-message-input" class="sr-only">Type a message for Eco-Coach Spark</label>
+            <input type="text"
+                   id="chat-user-message-input"
+                   name="userMessage"
+                   autocomplete="off"
+                   aria-label="Type a message for Eco-Coach Spark"
+                   class="flex-grow bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-violet-500/50 text-slate-100 transition-all placeholder:text-slate-500"
+                   placeholder="Type a message, ask about global grid data, or request active footprint reduction tips...">
             <button type="submit" class="px-5 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white font-heading font-bold text-sm shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all flex items-center gap-2 shrink-0">
               Send
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -437,11 +538,15 @@
             </button>
           </form>
         </div>
-      </div>
+      </section>
 
 
       <!-- ================= TAB 3: 3D GLOBE ================= -->
-      <div id="tab-globe-view" class="tab-pane hidden flex flex-col gap-6 md:h-full">
+      <section id="tab-globe-view"
+               role="tabpanel"
+               aria-labelledby="nav-globe"
+               tabindex="0"
+               class="tab-pane hidden flex flex-col gap-6 md:h-full">
         <!-- Header -->
         <header class="flex justify-between items-center shrink-0">
           <div>
@@ -457,27 +562,38 @@
           <!-- Globe Column (8 cols) -->
           <div class="lg:col-span-8 flex flex-col gap-4 lg:h-full relative z-10 min-h-[400px]">
             <!-- Canvas Wrapper for Three.js -->
-            <div id="globe-container" class="w-full flex-grow rounded-2xl glass-panel border border-white/5 relative overflow-hidden bg-slate-950/20 shadow-inner min-h-[300px]">
-              <div id="canvas-3d-target" class="absolute inset-0 z-0"></div>
+            <div id="globe-container"
+                 class="w-full flex-grow rounded-2xl glass-panel border border-white/5 relative overflow-hidden bg-slate-950/20 shadow-inner min-h-[300px]"
+                 role="img"
+                 aria-label="Interactive 3D Earth globe showing regional electricity grid carbon intensities. Drag to rotate.">
+              <div id="canvas-3d-target" class="absolute inset-0 z-0">
+                <!-- Fix #14: .city-marker outer wrapper + .marker-dot ping element applied to each globe label -->
+                <!-- Reykjavik: emerald (clean grid) -->
+                <div id="marker-0" class="city-marker hidden items-center gap-1.5">
+                  <span class="marker-dot" style="background:#10b981; color:#10b981;"></span>
+                  <div class="px-2 py-1 rounded bg-slate-950/80 border border-emerald-500/30 text-[9px] font-bold text-emerald-400 shadow-md whitespace-nowrap">Reykjavik (Renewable)</div>
+                </div>
+                <!-- New York: amber (moderate grid) -->
+                <div id="marker-1" class="city-marker hidden items-center gap-1.5">
+                  <span class="marker-dot" style="background:#f59e0b; color:#f59e0b;"></span>
+                  <div class="px-2 py-1 rounded bg-slate-950/80 border border-amber-500/30 text-[9px] font-bold text-amber-400 shadow-md whitespace-nowrap">New York (Moderate)</div>
+                </div>
+                <!-- New Delhi: rose (coal-heavy grid) -->
+                <div id="marker-2" class="city-marker hidden items-center gap-1.5">
+                  <span class="marker-dot" style="background:#f43f5e; color:#f43f5e;"></span>
+                  <div class="px-2 py-1 rounded bg-slate-950/80 border border-rose-500/30 text-[9px] font-bold text-rose-500 shadow-md whitespace-nowrap">New Delhi (Coal Intensive)</div>
+                </div>
+                <!-- Sydney: amber (coal/solar mix) -->
+                <div id="marker-3" class="city-marker hidden items-center gap-1.5">
+                  <span class="marker-dot" style="background:#f59e0b; color:#f59e0b;"></span>
+                  <div class="px-2 py-1 rounded bg-slate-950/80 border border-amber-500/30 text-[9px] font-bold text-amber-500 shadow-md whitespace-nowrap">Sydney (Coal/Solar Mix)</div>
+                </div>
+              </div>
               
               <!-- Smog Status Badge Overlay -->
               <div class="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full glass-panel border border-white/5 text-[10px] font-bold tracking-wide">
                 <span id="globe-smog-indicator" class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
                 <span id="globe-smog-text" class="text-emerald-400">Oasis Atmos</span>
-              </div>
-
-              <!-- Real 2D Floating City Labels Projected from 3D coords -->
-              <div id="marker-0" class="absolute z-10 hidden transform -translate-x-1/2 -translate-y-1/2 cursor-pointer pointer-events-auto">
-                <div class="px-2 py-1 rounded bg-slate-950/80 border border-emerald-500/30 text-[9px] font-bold text-emerald-400 shadow-md whitespace-nowrap">Reykjavik (Renewable)</div>
-              </div>
-              <div id="marker-1" class="absolute z-10 hidden transform -translate-x-1/2 -translate-y-1/2 cursor-pointer pointer-events-auto">
-                <div class="px-2 py-1 rounded bg-slate-950/80 border border-amber-500/30 text-[9px] font-bold text-amber-400 shadow-md whitespace-nowrap">New York (Moderate)</div>
-              </div>
-              <div id="marker-2" class="absolute z-10 hidden transform -translate-x-1/2 -translate-y-1/2 cursor-pointer pointer-events-auto">
-                <div class="px-2 py-1 rounded bg-slate-950/80 border border-rose-500/30 text-[9px] font-bold text-rose-500 shadow-md whitespace-nowrap">New Delhi (Coal Intensive)</div>
-              </div>
-              <div id="marker-3" class="absolute z-10 hidden transform -translate-x-1/2 -translate-y-1/2 cursor-pointer pointer-events-auto">
-                <div class="px-2 py-1 rounded bg-slate-950/80 border border-amber-500/30 text-[9px] font-bold text-amber-500 shadow-md whitespace-nowrap">Sydney (Coal/Solar Mix)</div>
               </div>
             </div>
           </div>
@@ -509,10 +625,14 @@
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- ================= TAB 4: GLOBAL COMPARISONS ================= -->
-      <div id="tab-compare-view" class="tab-pane hidden flex flex-col gap-6 md:h-full">
+      <section id="tab-compare-view"
+               role="tabpanel"
+               aria-labelledby="nav-compare"
+               tabindex="0"
+               class="tab-pane hidden flex flex-col gap-6 md:h-full">
         <header class="flex justify-between items-center shrink-0">
           <div>
             <h1 class="text-xl md:text-3xl font-heading font-extrabold text-white tracking-tight">Global Footprint Comparisons</h1>
@@ -533,7 +653,11 @@
             </div>
 
             <!-- Dynamic Comparison Chart Bars Container -->
-            <div id="compare-bars-list" class="flex flex-col gap-4 mt-2">
+            <div id="compare-bars-list"
+                 class="flex flex-col gap-4 mt-2"
+                 role="list"
+                 aria-label="Country carbon footprint comparison bars"
+                 aria-live="polite">
               <!-- Bars will be rendered dynamically -->
             </div>
           </div>
@@ -589,14 +713,21 @@
           </div>
 
         </div>
-      </div>
+      </section>
 
     </main>
 
     <!-- Mobile Bottom Navigation Bar -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 glass-panel border-t border-white/5 flex justify-around items-center z-30 px-2 shadow-2xl">
-      <button id="nav-dashboard-mobile" class="flex flex-col items-center justify-center gap-1 text-teal-400 transition-all">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 glass-panel border-t border-white/5 flex justify-around items-center z-30 px-2 shadow-2xl"
+         role="tablist"
+         aria-label="Mobile navigation">
+      <button id="nav-dashboard-mobile"
+              role="tab"
+              aria-selected="true"
+              aria-controls="tab-dashboard-view"
+              aria-label="Dashboard"
+              class="flex flex-col items-center justify-center gap-1 text-teal-400 transition-all">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <rect x="3" y="3" width="7" height="9"></rect>
           <rect x="14" y="3" width="7" height="5"></rect>
           <rect x="14" y="12" width="7" height="9"></rect>
@@ -605,8 +736,14 @@
         <span class="text-[9px] font-bold uppercase tracking-wider font-heading">Dashboard</span>
       </button>
 
-      <button id="nav-globe-mobile" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200 transition-all">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <button id="nav-globe-mobile"
+              role="tab"
+              aria-selected="false"
+              aria-controls="tab-globe-view"
+              aria-label="3D Eco-Globe"
+              tabindex="-1"
+              class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200 transition-all">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <circle cx="12" cy="12" r="10"></circle>
           <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
           <path d="M2 12h20"></path>
@@ -614,15 +751,27 @@
         <span class="text-[9px] font-bold uppercase tracking-wider font-heading">3D Globe</span>
       </button>
 
-      <button id="nav-coach-mobile" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200 transition-all">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <button id="nav-coach-mobile"
+              role="tab"
+              aria-selected="false"
+              aria-controls="tab-coach-view"
+              aria-label="Eco-Coach AI"
+              tabindex="-1"
+              class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200 transition-all">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
         <span class="text-[9px] font-bold uppercase tracking-wider font-heading">AI Coach</span>
       </button>
 
-      <button id="nav-compare-mobile" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200 transition-all">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <button id="nav-compare-mobile"
+              role="tab"
+              aria-selected="false"
+              aria-controls="tab-compare-view"
+              aria-label="Global Comparison"
+              tabindex="-1"
+              class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200 transition-all">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <line x1="18" y1="20" x2="18" y2="10"></line>
           <line x1="12" y1="20" x2="12" y2="4"></line>
           <line x1="6" y1="20" x2="6" y2="14"></line>

@@ -1,6 +1,15 @@
 // Vercel Serverless Function: api/coach.js
 // Securely proxies requests to Google Gemini API to hide credentials from client-side code
 
+/**
+ * Vercel Serverless Request Handler.
+ * Proxies message queries and sustainability context securely to the Gemini API.
+ * Returns an HTTP 503 error if the API key is not configured.
+ *
+ * @param {import('@vercel/node').VercelRequest} req - The Vercel request object containing prompt and context payload
+ * @param {import('@vercel/node').VercelResponse} res - The Vercel response object
+ * @returns {Promise<void>}
+ */
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -23,7 +32,11 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    return res.status(200).json({ simulated: true, message: 'Gemini API Key environment variable not configured on Vercel.' });
+    // Fix #9: Return 503 (Service Unavailable) instead of 200.
+    // A 200 response caused app.js to treat this as a successful Gemini reply and
+    // attempt to read data.text (undefined), silently swallowing the error and
+    // bypassing the offline simulation fallback. 503 correctly sets response.ok = false.
+    return res.status(503).json({ error: 'GEMINI_API_KEY environment variable is not configured on Vercel.' });
   }
 
   try {

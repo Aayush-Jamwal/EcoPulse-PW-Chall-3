@@ -1,4 +1,10 @@
 /* Custom styles for EcoPulse 2.0 - Aurora Ice Theme */
+
+/*
+ * Fix #18: Added robust system-font fallback stacks so the UI degrades gracefully
+ * if Google Fonts cannot load (e.g. offline or slow network).
+ * Google Fonts are still preferred; ?display=swap prevents invisible text during load.
+ */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -7,8 +13,14 @@
   --teal-glow: rgba(13, 148, 136, 0.4);
   --violet-glow: rgba(139, 92, 246, 0.4);
   --ice-glow: rgba(147, 197, 253, 0.4);
-  --font-heading: 'Outfit', sans-serif;
-  --font-body: 'Plus Jakarta Sans', sans-serif;
+
+  /*
+   * Fix #18: Extended fallback stacks.
+   * Heading: Outfit → system-ui (Chrome/Edge) → -apple-system (Safari) → Segoe UI (Windows) → sans-serif.
+   * Body   : Plus Jakarta Sans → same generic cascade.
+   */
+  --font-heading: 'Outfit', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-body:    'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
 }
 
 body {
@@ -99,16 +111,22 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes pulse-slow {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(40px, 60px) scale(1.1); }
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(40px, 60px) scale(1.1); }
   100% { transform: translate(-30px, -20px) scale(0.95); }
 }
 
-/* Three.js Canvas Marker overlay */
+/* =========================================================
+   Fix #14: Globe City Marker Styles
+   .city-marker — absolute wrapper; JS sets its transform to position it.
+   .marker-dot  — coloured ping dot; colour set via inline style="color:…".
+   ========================================================= */
 .city-marker {
   position: absolute;
   top: 0;
   left: 0;
+  display: none; /* JS switches to flex when visible */
+  align-items: center;
   pointer-events: auto;
   cursor: pointer;
   z-index: 40;
@@ -116,38 +134,45 @@ h1, h2, h3, h4, h5, h6 {
 
 .marker-dot {
   position: relative;
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  border: 2.5px solid #ffffff;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 8px currentColor;
+  flex-shrink: 0;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+/* Animated ping ring — inherits colour from .marker-dot's currentColor */
 .marker-dot::after {
   content: '';
   position: absolute;
-  top: -6px;
-  left: -6px;
-  width: 22px;
-  height: 22px;
-  border: 2px solid inherit;
-  border-color: currentColor;
+  top: -5px;
+  left: -5px;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid currentColor;
   border-radius: 50%;
   animation: ping-slow 2s infinite ease-out;
   opacity: 0.8;
 }
 
 .city-marker:hover .marker-dot {
-  transform: scale(1.3);
+  transform: scale(1.35);
 }
 
 @keyframes ping-slow {
-  0% { transform: scale(0.6); opacity: 1; }
-  100% { transform: scale(2.2); opacity: 0; }
+  0%   { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2.4); opacity: 0; }
 }
 
-/* Custom Styled Range Sliders */
+/* =========================================================
+   Fix #10: Merged duplicate input[type="range"] blocks.
+   Previously the desktop block (lines ~151-177) and the mobile block
+   (lines ~215-242) defined separate, conflicting thumb styles.
+   This single unified block applies on all screen sizes.
+   A media-query at the bottom handles touch-friendly sizing.
+   ========================================================= */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -155,6 +180,7 @@ input[type="range"] {
   height: 6px;
   border-radius: 9999px;
   outline: none;
+  cursor: pointer;
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -163,17 +189,38 @@ input[type="range"]::-webkit-slider-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid #0d9488;
+  background: linear-gradient(135deg, #14b8a6, #818cf8);
+  border: 2px solid rgba(255, 255, 255, 0.25);
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(13, 148, 136, 0.6);
-  transition: transform 0.1s ease, background 0.1s ease;
+  box-shadow: 0 0 10px rgba(13, 148, 136, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  background: #0d9488;
-  border-color: #ffffff;
+  transform: scale(1.25);
+  box-shadow: 0 0 16px rgba(13, 148, 136, 0.75);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #14b8a6, #818cf8);
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 10px rgba(13, 148, 136, 0.5);
+}
+
+/* Touch-friendly thumb sizing on mobile */
+@media (max-width: 768px) {
+  input[type="range"]::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+  }
 }
 
 /* Scrollbar styling */
@@ -200,8 +247,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes typing-bounce {
-  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-  40% { transform: translateY(-6px); opacity: 1; }
+  0%, 80%, 100% { transform: translateY(0);   opacity: 0.4; }
+  40%            { transform: translateY(-6px); opacity: 1;   }
 }
 
 /* ========= MOBILE FRIENDLINESS ========= */
@@ -209,36 +256,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* Remove tap highlight flash on mobile */
 * {
   -webkit-tap-highlight-color: transparent;
-}
-
-/* Touch-friendly range sliders */
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  outline: none;
-  cursor: pointer;
-}
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #14b8a6, #818cf8);
-  cursor: pointer;
-  box-shadow: 0 0 8px rgba(20, 184, 166, 0.4);
-  border: 2px solid rgba(255,255,255,0.2);
-}
-input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #14b8a6, #818cf8);
-  cursor: pointer;
-  border: 2px solid rgba(255,255,255,0.2);
 }
 
 /* Scrollable recommendations container styled scrollbar */
@@ -267,3 +284,27 @@ input[type="range"]::-moz-range-thumb {
     font-size: 16px !important;
   }
 }
+
+/* =========================================================
+   Accessibility Utilities & Focus States
+   ========================================================= */
+
+/* Screen reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Keyboard navigation high contrast focus indicator */
+*:focus-visible {
+  outline: 3px solid rgba(20, 184, 166, 0.75);
+  outline-offset: 2px;
+}
+

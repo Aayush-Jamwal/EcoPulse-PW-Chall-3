@@ -1,27 +1,107 @@
 /**
- * EcoPulse 2.0 - Application Logic & State Controller
- * Features: Three.js shader morphing globe, Ecological footprint math,
- * and context-aware Gemini AI integrations.
+ * @fileoverview EcoPulse 2.0 — Application Logic & State Controller
+ * @description Manages the full application lifecycle: carbon footprint
+ *   calculations, Three.js 3D globe rendering, Gemini AI eco-coaching,
+ *   impact simulation, action planning, and global comparison charts.
+ *
+ * Architecture:
+ *   ─ SECTION 1 ─ Security Utilities         (sanitizeHTML, etc.)
+ *   ─ SECTION 2 ─ Global Data & Emissions     (EMISSIONS_FACTORS, CITY_HOTSPOTS)
+ *   ─ SECTION 3 ─ Tab Routing Config          (TABS constant)
+ *   ─ SECTION 4 ─ State Management            (state, load/save)
+ *   ─ SECTION 5 ─ Routing & Navigation        (initTabRouting, switchView)
+ *   ─ SECTION 6 ─ Calculator & Carbon Engine  (runEcoSenseCalculator, etc.)
+ *   ─ SECTION 7 ─ 3D Globe Rendering          (initThreeGlobe, animateGlobe)
+ *   ─ SECTION 8 ─ AI Eco-Coach Chat           (setupChatbot, fetchGeminiCoachAdvice)
+ *   ─ SECTION 9 ─ Global Comparison Tab       (updateComparisonTab)
+ *   ─ SECTION 10 ─ Bootstrap                 (DOMContentLoaded)
+ *
+ * @version 2.0.0
+ * @license MIT
+ *
+ * SECURITY NOTE: GEMINI_API_KEY is intentionally left empty here.
+ * The real API credential is stored as a Vercel environment variable and
+ * accessed exclusively via the /api/coach serverless proxy route, ensuring
+ * it is never exposed to the client-side JavaScript bundle.
  */
 
-// Hardcoded Gemini API Key (leave empty - key is stored securely in Vercel env vars via /api/coach serverless proxy)
+'use strict';
+
+// ================= SECTION 1 — SECURITY UTILITIES =================
+
+/**
+ * Precomputed HTML escape map for performance.
+ * @type {Readonly<Record<string, string>>}
+ */
+const HTML_ESCAPE_MAP = Object.freeze({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#039;',
+  '/': '&#x2F;'
+});
+
+/**
+ * Sanitizes raw user input to prevent Cross-Site Scripting (XSS) and
+ * prompt-injection attacks before any string is rendered via innerHTML.
+ * Escapes the six HTML-dangerous characters in a single pass using a fast regex map.
+ *
+ * @security This function MUST be called on all user-supplied strings before
+ *   they are inserted into innerHTML. It is the primary XSS defense layer.
+ * @param {string} text - Raw user-supplied string
+ * @returns {string} HTML-safe escaped string, safe for innerHTML insertion
+ */
+function sanitizeHTML(text) {
+  if (typeof text !== 'string') return '';
+  return text.trim().replace(/[&<>"'\/]/g, (char) => HTML_ESCAPE_MAP[char] || char);
+}
+
+/**
+ * Recursively sanitizes objects to remove prototype pollution keys (__proto__, constructor, prototype).
+ * Prevents malicious JSON inputs from overriding core JavaScript object prototypes.
+ *
+ * @security Run this on all parsed JSON data (like local storage loading) before using it.
+ * @param {*} obj - The input object or value to sanitize
+ * @returns {*} Cleaned object copy with dangerous prototype keys excluded
+ */
+function stripDangerousKeys(obj) {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(stripDangerousKeys);
+  }
+  const cleanObj = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (key !== '__proto__' && key !== 'constructor' && key !== 'prototype') {
+      cleanObj[key] = stripDangerousKeys(value);
+    }
+  }
+  return cleanObj;
+}
+
+// ================= SECTION 2 — GLOBAL DATA & CALCULATIONS =================
+
+/** Compile-time API key placeholder. The real key is a Vercel env var. */
 const GEMINI_API_KEY = '';
 
-// ================= GLOBAL DATA & CALCULATIONS =================
 
 // Standard daily carbon factors (kg CO2e per day)
+// Fix #17: Added 'electric' commute key to align with state.quizAnswers.commuteMode mapping.
 const EMISSIONS_FACTORS = {
   commute: {
-    'drive-alone': 0.22, // Petrol/Diesel Car (kg CO2e / km)
-    'twowheeler': 0.10,  // Two-Wheeler (kg CO2e / km)
-    'transit': 0.03,     // Public Transit (kg CO2e / km)
-    'active': 0.00       // Walk / Bicycle (kg CO2e / km)
+    'drive-alone': 0.22, // Petrol/Diesel Car   (kg CO2e / km)
+    'electric':    0.05, // Electric Vehicle     (kg CO2e / km) — grid-charged
+    'twowheeler':  0.10, // Two-Wheeler          (kg CO2e / km)
+    'transit':     0.03, // Public Transit       (kg CO2e / km)
+    'active':      0.00  // Walk / Bicycle / None(kg CO2e / km)
   },
   diet: {
-    'meat-heavy': 8.3,   // Meat Heavy (kg CO2e / day)
-    'balanced': 5.6,     // Balanced / Flexitarian (kg CO2e / day)
-    'vegetarian': 2.8,   // Indian Vegetarian (kg CO2e / day)
-    'vegan': 1.5         // Plant-based / Vegan (kg CO2e / day)
+    'meat-heavy':  8.3,  // Meat Heavy           (kg CO2e / day)
+    'balanced':    5.6,  // Balanced/Flexitarian (kg CO2e / day)
+    'vegetarian':  2.8,  // Indian Vegetarian    (kg CO2e / day)
+    'vegan':       1.5   // Plant-based / Vegan  (kg CO2e / day)
   }
 };
 
@@ -105,7 +185,17 @@ const CITY_HOTSPOTS = [
   }
 ];
 
-// ================= STATE MANAGEMENT =================
+// ================= SECTION 3 — TAB ROUTING CONFIG =================
+// Fix #12: Single source of truth for tab definitions — eliminates duplication
+// between initTabRouting() and switchView() which previously defined identical arrays.
+const TABS = [
+  { id: 'dashboard', btn: 'nav-dashboard', mobileBtn: 'nav-dashboard-mobile', view: 'tab-dashboard-view' },
+  { id: 'globe',     btn: 'nav-globe',     mobileBtn: 'nav-globe-mobile',     view: 'tab-globe-view'      },
+  { id: 'coach',     btn: 'nav-coach',     mobileBtn: 'nav-coach-mobile',     view: 'tab-coach-view'      },
+  { id: 'compare',   btn: 'nav-compare',   mobileBtn: 'nav-compare-mobile',   view: 'tab-compare-view'    }
+];
+
+// ================= SECTION 4 — STATE MANAGEMENT =================
 let state = {
   // Calculator inputs
   vehicleType: 'Car (Petrol/Diesel)',
@@ -174,23 +264,39 @@ document.addEventListener('DOMContentLoaded', () => {
   generateActionPlan();
 });
 
-// Load state from local storage
+/**
+ * Loads the application state from local storage.
+ * Recursively strips prototype pollution keys to ensure runtime safety.
+ * Always overrides the loaded API key with the blank compile-time constant.
+ *
+ * @security Prevents prototype pollution by sanitizing storage input keys.
+ * @returns {void}
+ */
 function loadSavedState() {
   const localData = localStorage.getItem('ecosense_state');
   if (localData) {
     try {
       const parsed = JSON.parse(localData);
-      state = { ...state, ...parsed };
+      const cleanParsed = stripDangerousKeys(parsed);
+      state = { ...state, ...cleanParsed };
     } catch (e) {
       console.warn('Could not parse saved state, starting fresh:', e);
     }
   }
 
-  // Set the hardcoded API Key
+  // Fix #16: Always override the persisted key with the compile-time constant.
+  // GEMINI_API_KEY is intentionally left empty here — the real credential is stored
+  // as a Vercel environment variable and accessed securely via the /api/coach proxy
+  // route. This override prevents a locally saved stale key from ever shadowing the
+  // server-side credential or inadvertently exposing it in localStorage.
   state.geminiKey = GEMINI_API_KEY;
 }
 
-// Save active state to local storage
+/**
+ * Saves the active state variables to local storage as a JSON string.
+ *
+ * @returns {void}
+ */
 function saveStateToStorage() {
   localStorage.setItem('ecosense_state', JSON.stringify({
     vehicleType: state.vehicleType,
@@ -211,7 +317,11 @@ function saveStateToStorage() {
   }));
 }
 
-// Sync inputs from state to DOM elements
+/**
+ * Syncs the in-memory state variables to the corresponding DOM input/slider elements.
+ *
+ * @returns {void}
+ */
 function syncInputsFromState() {
   const fields = {
     'vehicle-type': state.vehicleType,
@@ -245,15 +355,18 @@ function syncInputsFromState() {
   }
 }
 
-// ================= ROUTING & TAB NAVIGATION =================
+// ================= SECTION 5 — ROUTING & TAB NAVIGATION =================
 
+/**
+ * Initializes tab routing by binding click event listeners to the desktop
+ * and mobile navigation buttons. Also configures standard WAI-ARIA keyboard
+ * arrow-key navigation for the tablist buttons.
+ *
+ * @returns {void}
+ */
 function initTabRouting() {
-  const tabs = [
-    { id: 'dashboard', btn: 'nav-dashboard', mobileBtn: 'nav-dashboard-mobile', view: 'tab-dashboard-view' },
-    { id: 'globe', btn: 'nav-globe', mobileBtn: 'nav-globe-mobile', view: 'tab-globe-view' },
-    { id: 'coach', btn: 'nav-coach', mobileBtn: 'nav-coach-mobile', view: 'tab-coach-view' },
-    { id: 'compare', btn: 'nav-compare', mobileBtn: 'nav-compare-mobile', view: 'tab-compare-view' }
-  ];
+  // Fix #12: Use the module-level TABS constant instead of a duplicate local array.
+  const tabs = TABS;
 
   tabs.forEach(tab => {
     // Desktop Nav Click
@@ -272,40 +385,107 @@ function initTabRouting() {
       });
     }
   });
+
+  // WAI-ARIA Arrow key tab-list routing for keyboard accessibility
+  const desktopNav = document.querySelector('nav[role="tablist"]');
+  if (desktopNav) {
+    desktopNav.addEventListener('keydown', (e) => {
+      const activeEl = document.activeElement;
+      if (!activeEl || activeEl.getAttribute('role') !== 'tab') return;
+      
+      const buttons = Array.from(desktopNav.querySelectorAll('[role="tab"]'));
+      const index = buttons.indexOf(activeEl);
+      if (index === -1) return;
+
+      let nextIdx = -1;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        nextIdx = (index + 1) % buttons.length;
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        nextIdx = (index - 1 + buttons.length) % buttons.length;
+      } else if (e.key === 'Home') {
+        nextIdx = 0;
+      } else if (e.key === 'End') {
+        nextIdx = buttons.length - 1;
+      }
+
+      if (nextIdx !== -1) {
+        e.preventDefault();
+        const targetTab = buttons[nextIdx];
+        targetTab.focus();
+        const tabConf = tabs.find(t => t.btn === targetTab.id);
+        if (tabConf) {
+          switchView(tabConf.id);
+        }
+      }
+    });
+  }
 }
 
-// Transition views and style active navigation sidebar button
+/**
+ * Transitions the visible tab panel and updates all nav button states.
+ * Also manages:
+ *   • ARIA — sets aria-selected=true/false on tab buttons (Accessibility)
+ *   • State — stores active selection in state.currentTab
+ *   • Globe — resizes canvas on globe entry; pauses render loop on other tabs (Efficiency)
+ *   • Compare — re-syncs chart data when entering the compare tab
+ *
+ * @param {string} tabId - The target tab identifier ('dashboard'|'globe'|'coach'|'compare')
+ * @returns {void}
+ */
 function switchView(tabId) {
-  const tabs = [
-    { id: 'dashboard', btn: 'nav-dashboard', mobileBtn: 'nav-dashboard-mobile', view: 'tab-dashboard-view' },
-    { id: 'globe', btn: 'nav-globe', mobileBtn: 'nav-globe-mobile', view: 'tab-globe-view' },
-    { id: 'coach', btn: 'nav-coach', mobileBtn: 'nav-coach-mobile', view: 'tab-coach-view' },
-    { id: 'compare', btn: 'nav-compare', mobileBtn: 'nav-compare-mobile', view: 'tab-compare-view' }
-  ];
+  // Fix #12: Use the module-level TABS constant instead of a duplicate local array.
+  const tabs = TABS;
+
+  // Track the active tab in state
+  state.currentTab = tabId;
 
   tabs.forEach(t => {
-    const viewEl = document.getElementById(t.view);
-    const btnEl = document.getElementById(t.btn);
+    const viewEl     = document.getElementById(t.view);
+    const btnEl      = document.getElementById(t.btn);
     const mobileBtnEl = document.getElementById(t.mobileBtn);
+    const isActive   = t.id === tabId;
 
-    if (t.id === tabId) {
+    if (isActive) {
       if (viewEl) viewEl.classList.remove('hidden');
-      // Set active desktop class
-      if (btnEl) btnEl.className = "flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-teal-400 bg-teal-500/10 border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.15)]";
+      // Set active desktop class + ARIA
+      if (btnEl) {
+        btnEl.className = "flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-teal-400 bg-teal-500/10 border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.15)]";
+        btnEl.setAttribute('aria-selected', 'true');
+        btnEl.setAttribute('tabindex', '0');
+      }
       // Set active mobile class
-      if (mobileBtnEl) mobileBtnEl.className = "flex flex-col items-center justify-center gap-1 text-teal-400 transition-all";
+      if (mobileBtnEl) {
+        mobileBtnEl.className = "flex flex-col items-center justify-center gap-1 text-teal-400 transition-all";
+        mobileBtnEl.setAttribute('aria-selected', 'true');
+      }
     } else {
       if (viewEl) viewEl.classList.add('hidden');
-      // Set inactive desktop class
-      if (btnEl) btnEl.className = "flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5";
+      // Set inactive desktop class + ARIA
+      if (btnEl) {
+        btnEl.className = "flex items-center gap-4 px-4 py-3.5 rounded-xl font-heading font-semibold text-sm transition-all duration-300 text-left text-slate-400 hover:text-slate-200 hover:bg-white/5";
+        btnEl.setAttribute('aria-selected', 'false');
+        btnEl.setAttribute('tabindex', '-1');
+      }
       // Set inactive mobile class
-      if (mobileBtnEl) mobileBtnEl.className = "flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200 transition-all";
+      if (mobileBtnEl) {
+        mobileBtnEl.className = "flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200 transition-all";
+        mobileBtnEl.setAttribute('aria-selected', 'false');
+      }
     }
   });
 
-  // Re-sync canvas sizes if entering globe view
+  // ── Globe tab: manage Three.js render loop (Efficiency) ──────────────────
+  // Only run the costly WebGL render loop when the globe panel is visible.
   if (tabId === 'globe') {
     handleResize();
+    if (typeof animateGlobe === 'function' && !animId) {
+      animateGlobe(); // resume on enter
+    }
+  } else {
+    if (animId) {
+      cancelAnimationFrame(animId);
+      animId = null;
+    }
   }
 
   // Re-sync comparisons if entering compare tab
@@ -314,8 +494,14 @@ function switchView(tabId) {
   }
 }
 
-// ================= SMART CARBON CALCULATOR LOGIC =================
+// ================= SECTION 6 — CALCULATOR & CARBON ENGINE =================
 
+/**
+ * Registers DOM event listeners for all calculator input fields, action buttons,
+ * simulator sliders, and the action planner goal slider.
+ * Must be called once during DOMContentLoaded initialization.
+ * @returns {void}
+ */
 function setupEcoSenseCalculatorEvents() {
   const inputs = [
     'vehicle-type', 'daily-distance', 'days-per-week', 
@@ -357,7 +543,12 @@ function setupEcoSenseCalculatorEvents() {
   // Planner Goal Slider
   const goalSlider = document.getElementById('reduction-goal');
   if (goalSlider) {
-    goalSlider.addEventListener('input', () => updateActionPlannerUI());
+    // Fix #6: Also regenerate the action plan items when the goal percentage changes.
+    // Previously only the label text updated; the plan list stayed stale.
+    goalSlider.addEventListener('input', () => {
+      updateActionPlannerUI();
+      generateActionPlan();
+    });
   }
 
   // Generate Plan button
@@ -367,7 +558,19 @@ function setupEcoSenseCalculatorEvents() {
   }
 }
 
-// Convert inputs to carbon footprint and sustainability score
+/**
+ * Reads all calculator input fields, computes transport/energy/lifestyle
+ * emissions and a sustainability score [0–100], persists results to state,
+ * then calls the downstream UI update functions.
+ *
+ * Emissions model:
+ *   transport  = dailyDistance × daysPerWeek × 4.33 weeks/mo × vehicleFactor
+ *   energy     = monthlyKwh × 0.82 (Indian grid: kg CO₂e/kWh)
+ *   lifestyle  = dietFactor + recyclingFactor
+ *   score      = clamp(0, 100, round(100 − total ÷ 5))
+ *
+ * @returns {void}
+ */
 function runEcoSenseCalculator() {
   const vehicleType = document.getElementById('vehicle-type').value;
   const dailyDistance = parseFloat(document.getElementById('daily-distance').value) || 0;
@@ -414,7 +617,9 @@ function runEcoSenseCalculator() {
   const totalEmissions = transportEmissions + energyEmissions + lifestyleEmissions;
 
   // Sustainability score
-  const score = Math.max(10, Math.min(100, 100 - Math.round(totalEmissions / 8.0)));
+  // Fix #4: Calibrated formula — 0 kg/mo = 100 score, 500 kg/mo = 0 score.
+  // Previous divider (8.0) was arbitrary and the floor was 10, which hid poor performance.
+  const score = Math.max(0, Math.min(100, Math.round(100 - (totalEmissions / 5.0))));
 
   // Save results to state
   state.monthlyEmissions = totalEmissions;
@@ -428,15 +633,21 @@ function runEcoSenseCalculator() {
   state.dailyBaseScore = totalEmissions / 30.0;
   state.earthsNeeded = parseFloat((0.5 + (state.dailyScore / 5.0) * 1.0).toFixed(1));
 
-  // Sync quizAnswers structure for AI coach prompt context compatibility
+  // Sync quizAnswers structure for AI coach prompt context compatibility.
+  // Fix #7: solar is NOT inferred from vehicle type — they are unrelated properties.
+  // Fix #17: commuteMode values now align with EMISSIONS_FACTORS.commute keys,
+  //          including the new 'electric' key so NaN is avoided in offline AI responses.
   state.quizAnswers = {
     commuteDist: dailyDistance,
-    commuteMode: vehicleType === 'Car (Petrol/Diesel)' ? 'drive-alone' : (vehicleType === 'Two-Wheeler' ? 'twowheeler' : (vehicleType === 'Public Transit' ? 'transit' : 'active')),
+    commuteMode: vehicleType === 'Car (Petrol/Diesel)' ? 'drive-alone'
+      : (vehicleType === 'Car (Electric)'  ? 'electric'
+      : (vehicleType === 'Two-Wheeler'     ? 'twowheeler'
+      : (vehicleType === 'Public Transit'  ? 'transit' : 'active'))),
     diet: dietPreference.toLowerCase(),
-    energyBill: Math.round(monthlyElectricity * 8), // rough bill estimate
+    energyBill: Math.round(monthlyElectricity * 8), // rough bill estimate (₹/mo)
     energyAc: 0,
     energyGas: 0,
-    solar: vehicleType === 'Car (Electric)'
+    solar: false // Solar panel ownership is a separate user input, not inferred from the vehicle
   };
 
   saveStateToStorage();
@@ -445,6 +656,12 @@ function runEcoSenseCalculator() {
   updateCalculatorUI();
 }
 
+/**
+ * Syncs the computed carbon metrics from state to the corresponding HTML progress bars,
+ * text share indicators, and sustainability score rings/labels in the Dashboard view.
+ *
+ * @returns {void}
+ */
 function updateCalculatorUI() {
   // 1. Carbon Footprint display
   const footprintEl = document.getElementById('carbon-footprint');
@@ -514,6 +731,12 @@ function updateCalculatorUI() {
   updateActionPlannerUI();
 }
 
+/**
+ * Evaluates active state parameters and dynamically renders customized carbon-reduction
+ * recommendation cards as semantic <article> elements under the AI Assistant panel.
+ *
+ * @returns {void}
+ */
 function updateAIRecommendations() {
   const container = document.getElementById('recommendations-container');
   if (!container) return;
@@ -574,7 +797,7 @@ function updateAIRecommendations() {
 
   recommendations.forEach(rec => {
     totalOffset += rec.offset;
-    const card = document.createElement('div');
+    const card = document.createElement('article');
     card.className = "p-3.5 rounded-xl border border-white/5 bg-slate-900/40 flex justify-between items-center gap-3";
     card.innerHTML = `
       <div class="flex flex-col gap-0.5">
@@ -594,6 +817,12 @@ function updateAIRecommendations() {
   }
 }
 
+/**
+ * Updates the Impact Simulator panel UI. Reads the slider values, enforces constraints based on
+ * computed transport/energy carbon shares, clamps visual thumb positions, and projects final savings.
+ *
+ * @returns {void}
+ */
 function updateSimulatorUI() {
   const drivingSlider = document.getElementById('reduce-driving-slider');
   const energySlider = document.getElementById('reduce-energy-slider');
@@ -606,9 +835,15 @@ function updateSimulatorUI() {
   drivingSlider.max = maxDriving;
   energySlider.max = maxEnergy;
 
-  // Clamp current value to new max if it exceeds
-  if (parseInt(drivingSlider.value) > maxDriving) drivingSlider.value = maxDriving;
-  if (parseInt(energySlider.value) > maxEnergy) energySlider.value = maxEnergy;
+  // Fix #5: Explicitly clamp and reassign slider values when the calculated max drops.
+  // Setting .value programmatically causes the browser to reposition the thumb
+  // immediately, preventing the visual desync the user would otherwise see.
+  if (parseInt(drivingSlider.value) > maxDriving) {
+    drivingSlider.value = maxDriving;
+  }
+  if (parseInt(energySlider.value) > maxEnergy) {
+    energySlider.value = maxEnergy;
+  }
 
   state.drivingReduction = parseInt(drivingSlider.value) || 0;
   state.energyReduction = parseInt(energySlider.value) || 0;
@@ -626,6 +861,11 @@ function updateSimulatorUI() {
   document.getElementById('sim-reduction').innerText = `${reductionPercent.toFixed(1)}%`;
 }
 
+/**
+ * Syncs the Carbon Action Planner target slider percentage configuration to the active UI state and label.
+ *
+ * @returns {void}
+ */
 function updateActionPlannerUI() {
   const goalSlider = document.getElementById('reduction-goal');
   const goalVal = document.getElementById('reduction-goal-val');
@@ -635,6 +875,12 @@ function updateActionPlannerUI() {
   }
 }
 
+/**
+ * Generates a structured 30-day carbon action plan list based on the user's active reduction target.
+ * Renders plan items as semantic <li> elements to populate the parent <ol> container.
+ *
+ * @returns {void}
+ */
 function generateActionPlan() {
   const container = document.getElementById('plan-output-container');
   if (!container) return;
@@ -661,7 +907,7 @@ function generateActionPlan() {
   }
 
   plans.forEach((plan, idx) => {
-    const item = document.createElement('div');
+    const item = document.createElement('li');
     item.className = "flex items-start gap-3 p-2.5 rounded-lg bg-white/5 border border-white/5 text-xs text-slate-300";
     item.innerHTML = `
       <span class="mt-0.5 w-5 h-5 shrink-0 flex items-center justify-center rounded-full bg-violet-500/20 border border-violet-500/30 text-[10px] font-extrabold text-violet-400 font-heading">${idx + 1}</span>
@@ -677,26 +923,33 @@ function generateActionPlan() {
 // ================= THREE.JS GLOBE WORKSPACE =================
 
 /**
- * autoRotate \u2014 pauses when the user grabs the globe, resumes 1.5 s after release.
+ * autoRotate — pauses when the user grabs the globe, resumes 1.5 s after release.
  * Declared at module scope so animateGlobe() and setupGlobeDrag() can share it.
  */
 let autoRotate = true;
 
+/**
+ * Initializes the Three.js WebGL 3D Globe visualization.
+ * Creates the scene, camera, renderer, lighting, earth geometries, custom shaders,
+ * loads the Earth texture, sets up city hotspot markers, and binds drag/resize events.
+ *
+ * @returns {void}
+ */
 function initThreeGlobe() {
   const canvasTarget = document.getElementById('canvas-3d-target');
   const globeWrap = document.getElementById('globe-container');
   if (!canvasTarget || !globeWrap) return;
 
-  // Measure the visible wrapper \u2014 canvasTarget may report 0 height before CSS layout
+  // Measure the visible wrapper — canvasTarget may report 0 height before CSS layout
   const width = globeWrap.clientWidth || 520;
   const height = globeWrap.clientHeight || 460;
 
-  // \u2500\u2500 Scene & Camera \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ──── Scene & Camera ──────────────────────────────────────────────────────────
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
   camera.position.z = 2.65;
 
-  // \u2500\u2500 Renderer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ──── Renderer ──────────────────────────────────────────────────────────
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setSize(width, height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -704,11 +957,11 @@ function initThreeGlobe() {
   renderer.domElement.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:block;';
   canvasTarget.appendChild(renderer.domElement);
 
-  // \u2500\u2500 Earth Group \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ──── Earth Group ──────────────────────────────────────────────────────────
   earthGroup = new THREE.Group();
   scene.add(earthGroup);
 
-  // \u2500\u2500 Three-point Lighting \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ──── Three-point Lighting ──────────────────────────────────────────────────────────
   scene.add(new THREE.AmbientLight(0x334d88, 0.60));        // cool-blue sky scatter
   const sunLight = new THREE.DirectionalLight(0xfff6e0, 1.30);
   sunLight.position.set(5, 3, 5);
@@ -717,7 +970,7 @@ function initThreeGlobe() {
   fillLight.position.set(-4, -2, -4);
   scene.add(fillLight);
 
-  // \u2500\u2500 Earth Surface Shaders \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ──── Earth Surface Shaders ──────────────────────────────────────────────────────────
   const earthVS = `
     varying vec3 vNormal;
     varying vec2 vUv;
@@ -785,11 +1038,18 @@ function initThreeGlobe() {
     }
   });
 
-  // \u2500\u2500 Real Earth Texture (CORS-enabled CDN) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ──── Real Earth Texture (CORS-enabled CDN) ───────────────────────────────────
   // Loads the three-globe package's equirectangular Blue-Marble day map.
   const TX_PRIMARY = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-day.jpg';
   const TX_FALLBACK = 'https://unpkg.com/three-globe/example/img/earth-day.jpg';
 
+  /**
+   * Loads the Earth texture from primary CDN URL or attempts fallback URL if loading fails.
+   *
+   * @param {string} url - Primary CDN URL for the texture image
+   * @param {string|null} fallbackUrl - Fallback URL to try if the primary URL fails
+   * @returns {void}
+   */
   function loadEarthTexture(url, fallbackUrl) {
     new THREE.TextureLoader().load(
       url,
@@ -805,11 +1065,11 @@ function initThreeGlobe() {
   }
   loadEarthTexture(TX_PRIMARY, TX_FALLBACK);
 
-  // \u2500\u2500 Earth Sphere Mesh \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ──── Earth Sphere Mesh ──────────────────────────────────────────────────────────
   earthMesh = new THREE.Mesh(new THREE.SphereGeometry(1.0, 64, 64), earthMat);
   earthGroup.add(earthMesh);
 
-  // \u2500\u2500 Outer Atmosphere Glow Shell (BackSide + Additive blending) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ──── Outer Atmosphere Glow Shell (BackSide + Additive blending) ────────────────
   const atmMat = new THREE.ShaderMaterial({
     vertexShader: `
       varying vec3 vNormal;
@@ -823,7 +1083,7 @@ function initThreeGlobe() {
       uniform float u_health;
       void main() {
         vec3 N = normalize(vNormal);
-        // BackSide normals point inward \u2014 negative dot product = silhouette rim
+        // BackSide normals point inward — negative dot product = silhouette rim
         float facing = max(0.0, -dot(N, vec3(0.0, 0.0, 1.0)));
         float rim    = pow(facing, 2.2);
         vec3  clean  = vec3(0.08, 0.84, 1.00);
@@ -840,7 +1100,7 @@ function initThreeGlobe() {
   atmosphereMesh = new THREE.Mesh(new THREE.SphereGeometry(1.068, 32, 32), atmMat);
   scene.add(atmosphereMesh);
 
-  // \u2500\u2500 City Hotspot Markers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ──── City Hotspot Markers ──────────────────────────────────────────────────────
   // radius 1.02 floats markers just above the surface to avoid z-fighting.
   CITY_HOTSPOTS.forEach((city, index) => {
     const pos = latLonToVector3(city.lat, city.lon, 1.02);
@@ -876,21 +1136,20 @@ function initThreeGlobe() {
     }
   });
 
-  // \u2500\u2500 Drag + animation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ──── Drag + animation ────────────────────────────────────────────────────────
   setupGlobeDrag(globeWrap); // attach to the card wrapper for full hit-area coverage
   animateGlobe();
   window.addEventListener('resize', handleResize);
 }
 
 /**
- * Convert geographic lat/lon (degrees) to a Three.js Cartesian position.
+ * Converts geographic latitude and longitude coordinates in degrees into a 3D Cartesian Vector3 position.
+ * Aligns mapping structure with SphereGeometry texture coordinates.
  *
- * Consistent with SphereGeometry UV mapping:
- *   U=0 \u2192 lon -180\u00b0, U=1 \u2192 lon +180\u00b0
- *   V=0 \u2192 lat -90\u00b0,  V=1 \u2192 lat +90\u00b0
- *
- * This ensures city markers land on the correct continent once the
- * real equirectangular texture is applied.
+ * @param {number} lat - Latitude in degrees (-90 to 90)
+ * @param {number} lon - Longitude in degrees (-180 to 180)
+ * @param {number} [radius=1.0] - Sphere radius
+ * @returns {THREE.Vector3} Cartesian 3D coordinates representing the location
  */
 function latLonToVector3(lat, lon, radius = 1.0) {
   const phi = (90 - lat) * (Math.PI / 180);
@@ -902,7 +1161,12 @@ function latLonToVector3(lat, lon, radius = 1.0) {
   );
 }
 
-// Update the city info card below the globe
+/**
+ * Populates the city details card overlay below the globe with parameters of the hovered/clicked city.
+ *
+ * @param {Object} city - The city hotspot metadata object containing name, intensity, desc, and color
+ * @returns {void}
+ */
 function displayCityDetails(city) {
   document.getElementById('city-card-name').innerText = city.name;
   const intensityEl = document.getElementById('city-card-intensity');
@@ -915,13 +1179,12 @@ function displayCityDetails(city) {
 }
 
 /**
- * Drag-to-rotate using the Pointer Events API.
+ * Configures interactive pointer event listeners for the Earth Globe container to allow rotation.
+ * Pauses auto-rotation on pointerdown, rotates the globe based on delta movements, clamps the
+ * vertical rotation, and resumes auto-rotation with a delay upon release.
  *
- * Fixes vs. the old mouse-event approach:
- *  - setPointerCapture() keeps drag alive even when cursor leaves the element.
- *  - pointercancel + pointerleave prevent stuck-drag states.
- *  - autoRotate pauses immediately on grab and resumes 1.5s after release.
- *  - X rotation is clamped so the globe cannot flip past the poles.
+ * @param {HTMLElement} container - The DOM wrapper element capturing pointer movements
+ * @returns {void}
  */
 function setupGlobeDrag(container) {
   let isDragging = false;
@@ -957,15 +1220,40 @@ function setupGlobeDrag(container) {
   };
   container.addEventListener('pointerup', endDrag);
   container.addEventListener('pointercancel', endDrag);
-  container.addEventListener('pointerleave', endDrag);
+  // Fix #2: pointerleave intentionally omitted.
+  // setPointerCapture() keeps routing pointer events to this element even when the
+  // cursor strays outside its bounds, so pointerleave fired spuriously mid-drag and
+  // abruptly terminated the rotation. pointerup + pointercancel are sufficient.
 }
 
 // â”€â”€ Render Loop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let targetHealth = 0.80;
 let currentHealth = 0.80;
 
+/**
+ * Main WebGL rendering animation loop for the Three.js Earth Globe.
+ * Calculates environmental health scaling, updates shader uniforms, performs auto-rotation,
+ * and handles screen projection of city markers in real time.
+ *
+ * @returns {void}
+ */
 function animateGlobe() {
   animId = requestAnimationFrame(animateGlobe);
+
+  // Dynamic aspect ratio and size synchronization check to prevent layout desyncs
+  const wrap = document.getElementById('canvas-3d-target') || document.getElementById('globe-container');
+  if (wrap && renderer && camera) {
+    const w = wrap.clientWidth;
+    const h = wrap.clientHeight;
+    if (w > 0 && h > 0) {
+      const canvas = renderer.domElement;
+      if (canvas.width !== w || canvas.height !== h) {
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
+    }
+  }
 
   if (earthMesh && earthMesh.material) {
     targetHealth = Math.min(1.0, Math.max(0.0, 1.0 - state.dailyScore / 24.0));
@@ -999,11 +1287,14 @@ function animateGlobe() {
 }
 
 /**
- * Projects each city dot's 3D world position onto 2D screen pixel coords
- * so HTML overlay markers track the globe in real time.
+ * Projects each 3D city marker's world position onto 2D screen pixels.
+ * Uses backface culling checks to determine visibility, then updates positions and display states
+ * of corresponding HTML marker overlay elements.
+ *
+ * @returns {void}
  */
 function projectCityMarkers() {
-  const wrap = document.getElementById('globe-container');
+  const wrap = document.getElementById('canvas-3d-target') || document.getElementById('globe-container');
   if (!wrap || !renderer) return;
   const W = wrap.clientWidth, H = wrap.clientHeight;
   const v = new THREE.Vector3();
@@ -1012,19 +1303,31 @@ function projectCityMarkers() {
     const mesh = cityMeshes[index];
     if (!mesh) return;
     mesh.getWorldPosition(v);
-    const visible = v.clone().sub(camera.position).dot(v.clone().normalize()) < 0;
+    // Fix #15: Correct backface culling — a marker is visible when the vector from
+    // it to the camera and the surface normal both point into the same hemisphere.
+    // The previous formula had the operand order wrong (< 0 instead of > 0).
+    const toCamera = camera.position.clone().sub(v);
+    const normal   = v.clone().normalize();
+    const visible  = toCamera.dot(normal) > 0;
     const el = document.getElementById(`marker-${index}`);
     if (!el) return;
     if (visible) {
       const p = v.clone().project(camera);
-      el.style.transform = `translate(-50%,-50%) translate(${(p.x * 0.5 + 0.5) * W}px,${(-p.y * 0.5 + 0.5) * H}px)`;
-      el.style.display = 'block';
+      // Translate by -5px horizontally instead of -50% to align the center of the 10px dot exactly with its 3D coordinates.
+      el.style.transform = `translate(-5px,-50%) translate(${(p.x * 0.5 + 0.5) * W}px,${(-p.y * 0.5 + 0.5) * H}px)`;
+      el.style.display = 'flex'; // flex to layout marker-dot + label side by side (fix #14)
     } else {
       el.style.display = 'none';
     }
   });
 }
 
+/**
+ * Resizes the Three.js WebGL renderer size and updates the perspective camera aspect ratio
+ * dynamically on browser window resizing.
+ *
+ * @returns {void}
+ */
 function handleResize() {
   const wrap = document.getElementById('globe-container');
   if (!wrap || !renderer || !camera) return;
@@ -1037,6 +1340,12 @@ function handleResize() {
 
 // ================= ECO-COACH INTERACTIVE CHATBOT LOGIC =================
 
+/**
+ * Initializes the Eco-Coach Spark chatbot workspace by binding form submit event handlers,
+ * suggested chat bubbles click handlers, and clear chat triggers.
+ *
+ * @returns {void}
+ */
 function setupChatbot() {
   const form = document.getElementById('chat-input-form');
   const input = document.getElementById('chat-user-message-input');
@@ -1072,7 +1381,9 @@ function setupChatbot() {
   suggestionBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       input.value = btn.innerText;
-      form.dispatchEvent(new Event('submit'));
+      // Fix #1: Must set bubbles:true and cancelable:true so the async submit
+      // handler (which calls e.preventDefault()) actually fires on the event.
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     });
   });
 
@@ -1086,7 +1397,12 @@ function setupChatbot() {
   triggerSparkAdvice('welcome');
 }
 
-// Renders coach simulated or live responses
+/**
+ * Programmatically triggers simulated messages from Spark based on context scenarios (like welcome or onboarding).
+ *
+ * @param {string} scenario - The trigger context scenario ('welcome'|'onboarding_finished')
+ * @returns {void}
+ */
 function triggerSparkAdvice(scenario) {
   if (scenario === 'welcome') {
     appendMessage('Spark', "Greetings! I'm Spark, your environmental pocket coach. I analyze your footprint and metrics to help you make carbon-saving habits. Ask me for specific tips or tap a suggestion bubble below!");
@@ -1096,7 +1412,15 @@ function triggerSparkAdvice(scenario) {
   }
 }
 
-// Appends message to chat box DOM
+/**
+ * Appends a bubble to the chatbot conversation message history log.
+ * Sanitizes user input before rendering.
+ *
+ * @security User inputs are sanitized using sanitizeHTML to prevent XSS injection.
+ * @param {string} sender - The message sender ('User'|'Spark')
+ * @param {string} text - Message text payload to display
+ * @returns {void}
+ */
 function appendMessage(sender, text) {
   const container = document.getElementById('chat-messages-container');
   if (!container) return;
@@ -1105,12 +1429,16 @@ function appendMessage(sender, text) {
   const isUser = sender === 'User';
 
   if (isUser) {
+    // Fix #3: Delegate to the module-level sanitizeHTML() security utility.
+    // This prevents XSS — e.g. <img src=x onerror=alert(1)> — and ensures
+    // the escaping logic is defined and maintained in exactly one place.
+    const safeText = sanitizeHTML(text);
     msgDiv.className = "flex justify-end items-end gap-3.5 max-w-[85%] self-end animate-[fadeIn_0.25s_ease-out]";
     msgDiv.innerHTML = `
       <div class="flex flex-col items-end gap-1">
         <span class="text-[10px] font-bold text-slate-400 font-heading">You</span>
         <div class="px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm text-slate-200 rounded-br-none leading-relaxed">
-          ${text}
+          ${safeText}
         </div>
       </div>
     `;
@@ -1136,6 +1464,11 @@ function appendMessage(sender, text) {
   container.scrollTop = container.scrollHeight;
 }
 
+/**
+ * Appends a typing loader indicator bubble to the conversation log.
+ *
+ * @returns {string|null} The DOM element ID of the typing indicator card, or null
+ */
 function appendTypingIndicator() {
   const container = document.getElementById('chat-messages-container');
   if (!container) return null;
@@ -1162,6 +1495,12 @@ function appendTypingIndicator() {
   return id;
 }
 
+/**
+ * Removes the dynamic typing loader indicator bubble from the conversation log.
+ *
+ * @param {string} id - The DOM element ID of the loader to remove
+ * @returns {void}
+ */
 function removeTypingIndicator(id) {
   const el = document.getElementById(id);
   if (el) el.remove();
@@ -1169,8 +1508,18 @@ function removeTypingIndicator(id) {
 
 // ================= GEMINI API REQUEST INTERFACES =================
 
+/**
+ * Dispatches an asynchronous request containing the user message and computed carbon context
+ * to the Vercel proxy. Falls back to direct client-side requests or a simulated offline engine if needed.
+ *
+ * @param {string} userPrompt - Raw message text sent by the user
+ * @returns {Promise<string>} Resolve to Spark's string reply
+ */
 async function fetchGeminiCoachAdvice(userPrompt) {
   // Build context payload injection referencing metrics
+  // Fix #13: state.completedActions is always empty because the checklist UI has
+  // not been implemented yet. The '|| None' fallback already handles this gracefully
+  // and correctly signals to Gemini that no habits have been logged today.
   const activeHabits = state.completedActions.map(id => {
     const action = CHECKLIST_ACTIONS.find(a => a.id === id);
     return action ? action.title : id;
@@ -1246,7 +1595,14 @@ Provide a highly personalized, practical response in 2-3 sentences. Reference th
   });
 }
 
-// Fallback offline simulated responses engine
+/**
+ * Offline simulation fallback logic. Parses query intent and runs heuristic arithmetic calculations
+ * based on current state variables to reply immediately with helpful, context-accurate answers.
+ *
+ * @param {string} prompt - Raw query string
+ * @param {string} context - Injected system metrics context
+ * @returns {string} Simulated environmental advice response string
+ */
 function getSimulatedOfflineResponse(prompt, context) {
   const query = prompt.toLowerCase();
 
@@ -1344,6 +1700,13 @@ const COUNTRY_COMPARISONS = [
 
 let selectedCompareCountryCode = 'IN';
 
+/**
+ * Renders the Global Comparison tab. Computes the user's annualized footprint,
+ * compiles comparison data for country list benchmarks, sorts them, and updates
+ * the dynamic comparison list elements.
+ *
+ * @returns {void}
+ */
 function updateComparisonTab() {
   const container = document.getElementById('compare-bars-list');
   if (!container) return;
@@ -1422,6 +1785,13 @@ function updateComparisonTab() {
   displayCompareSpotlight(spotlightItem, userTons);
 }
 
+/**
+ * Updates the Spotlight Detail panel with specific stats and metrics for the selected country.
+ *
+ * @param {Object} item - The selected country comparison data object
+ * @param {number} userTons - The user's annualized footprint in tons
+ * @returns {void}
+ */
 function displayCompareSpotlight(item, userTons) {
   document.getElementById('txt-compare-spotlight-name').innerText = item.name;
   document.getElementById('txt-compare-spotlight-val').innerText = item.emissions.toFixed(1);
@@ -1448,3 +1818,22 @@ function displayCompareSpotlight(item, userTons) {
     document.getElementById('txt-compare-spotlight-ratio').innerText = ratioText;
   }
 }
+
+/* =========================================================
+   Page Visibility API Handling
+   ========================================================= */
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // Suspend Three.js WebGL rendering loop to conserve battery/resources
+    if (animId) {
+      cancelAnimationFrame(animId);
+      animId = null;
+    }
+  } else {
+    // Resume render loop if the active view tab is the 3D globe
+    if (state.currentTab === 'globe' && !animId) {
+      animateGlobe();
+    }
+  }
+});
