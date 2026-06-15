@@ -1,6 +1,6 @@
 # 🌍 EcoPulse 2.0 — Active Carbon & Planetary Metrics
 
-> ⚡ **A Vibecoding GenAI Project**: Built, optimized, and hardened through advanced GenAI pair-programming. This project demonstrates developer-agent synergy, integrating automated test-driven correctness, 3D WebGL visuals, accessibility compliance, and strict security sandboxing through rapid GenAI iteration.
+> ⚡ **A Vibecoding GenAI Project**: Built, optimized, and hardened through advanced GenAI pair-programming using the **AntiGravity IDE** for **PromptWars Virtual** (hosted by **Hack2Skill** in collaboration with **Google for Developers**). This project demonstrates developer-agent synergy, integrating automated test-driven correctness, 3D WebGL visuals, accessibility compliance, and strict security sandboxing through rapid GenAI iteration.
 
 EcoPulse 2.0 is a premium, real-time ecological footprint calculator, daily habit tracker, interactive 3D WebGL atmospheric globe visualizer, and context-aware Gemini AI coaching assistant. Designed with a stunning, high-performance "Aurora Ice" glassmorphic interface, it helps users measure, visualize, and dynamically reduce their daily carbon emissions.
 
